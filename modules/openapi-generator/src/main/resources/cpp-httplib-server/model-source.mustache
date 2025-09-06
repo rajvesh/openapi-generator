@@ -1,0 +1,188 @@
+{{>License}}
+
+{{#models}}
+{{#model}}
+#include "{{vendorExtensions.modelClassName}}.h"
+
+namespace {{vendorExtensions.modelNamespace}} {
+
+{{vendorExtensions.modelClassName}}::{{vendorExtensions.modelClassName}}()
+{{#vars}}
+{{#-first}}:{{/-first}}{{^-first}},{{/-first}}m_{{nameInCamelCase}}(
+    {{#vendorExtensions.isEnum}}{{vendorExtensions.enumName}}::unknown{{/vendorExtensions.isEnum}}
+    {{^vendorExtensions.isEnum}}
+        {{#isModel}}{{{datatypeWithEnum}}}(){{/isModel}}
+        {{^isModel}}
+            {{#isArray}}{}{{/isArray}}
+            {{^isArray}}
+                {{#isString}}""{{/isString}}
+                {{^isString}}{{{defaultValue}}}{{/isString}}
+            {{/isArray}}
+        {{/isModel}}
+    {{/vendorExtensions.isEnum}}
+)
+{{/vars}}
+{}
+
+nlohmann::json {{vendorExtensions.modelClassName}}::toJson(const {{vendorExtensions.modelClassName}}& obj)
+{
+    nlohmann::json json;
+    {{#vars}}
+    // {{baseName}}{{#description}} - {{description}}{{/description}}
+    {{#isArray}}
+    {{#vendorExtensions.isArrayOfEnum}}
+    {
+        std::vector<std::string> result;
+        const auto& enumValues = obj.{{getter}}();
+        result.reserve(enumValues.size());
+        for (const auto& e : enumValues) {
+            result.push_back({{vendorExtensions.enumToStringHelper}}(e));
+        }
+        json["{{baseName}}"] = result;
+    }
+    {{/vendorExtensions.isArrayOfEnum}}
+    {{^vendorExtensions.isArrayOfEnum}}
+    {{#vendorExtensions.isArrayOfModel}}
+    {
+        std::vector<nlohmann::json> result;
+        const auto& modelValues = obj.{{getter}}();
+        result.reserve(modelValues.size());
+        for (const auto& e : modelValues) {
+            result.push_back({{vendorExtensions.arrayItemType}}::toJson(e));
+        }
+        json["{{baseName}}"] = result;
+    }
+    {{/vendorExtensions.isArrayOfModel}}
+    {{^vendorExtensions.isArrayOfModel}}
+    {{#vendorExtensions.isArrayOfPrimitive}}
+    json["{{baseName}}"] = obj.{{getter}}();
+    {{/vendorExtensions.isArrayOfPrimitive}}
+    {{#vendorExtensions.isArrayOfContainer}}
+    {
+        nlohmann::json arr = nlohmann::json::array();
+        for (const auto& v : obj.{{getter}}()) {
+            arr.push_back(v);
+        }
+        json["{{baseName}}"] = arr;
+    }
+    {{/vendorExtensions.isArrayOfContainer}}
+    {{/vendorExtensions.isArrayOfModel}}
+    {{/vendorExtensions.isArrayOfEnum}}
+    {{/isArray}}
+    {{^isArray}}
+    {{#isEnum}}
+    json["{{baseName}}"] = {{vendorExtensions.enumToStringHelper}}(obj.{{getter}}());
+    {{/isEnum}}
+    {{^isEnum}}
+    {{#isModel}}
+    json["{{baseName}}"] = {{{datatypeWithEnum}}}::toJson(obj.{{getter}}());
+    {{/isModel}}
+    {{^isModel}}
+    json["{{baseName}}"] = obj.{{getter}}();
+    {{/isModel}}
+        {{/isEnum}}
+    {{/isArray}}
+    {{/vars}}
+    return json;
+}
+
+{{vendorExtensions.modelClassName}} {{vendorExtensions.modelClassName}}::fromJson(const nlohmann::json& json)
+{
+    {{vendorExtensions.modelClassName}} obj;
+    {{#vars}}
+    //{{baseName}} {{#description}}- {{description}} {{/description}}
+    {{#isArray}}
+    //array
+    if(json.contains("{{baseName}}"))
+    {
+    {{#vendorExtensions.isArrayOfEnum}}
+    //Array of Enums
+        if (json.at("{{baseName}}").is_array()) {
+            std::vector<std::string> stringValues = json.at("{{baseName}}").get<std::vector<std::string>>();
+            std::vector<{{vendorExtensions.enumName}}> result;
+            result.reserve(stringValues.size());
+            for (const auto& v : stringValues) {
+                result.push_back({{vendorExtensions.enumFromStringHelper}}(v));
+            }
+            obj.{{setter}}(result);
+        }
+    }
+    {{/vendorExtensions.isArrayOfEnum}}
+    {{^vendorExtensions.isArrayOfEnum}}
+    {{#vendorExtensions.isArrayOfModel}}
+    //Array of Model
+        if (json.at("{{baseName}}").is_array())
+        {
+            auto jsonArray = json.at("{{baseName}}").get<std::vector<nlohmann::json>>();
+            std::vector<{{vendorExtensions.arrayItemType}}> result;
+            result.reserve(jsonArray.size());
+            for (const auto& item : jsonArray) {
+                result.push_back({{vendorExtensions.arrayItemType}}::fromJson(item));
+            }
+            obj.{{setter}}(result);
+        }
+    }
+    {{/vendorExtensions.isArrayOfModel}}
+    {{^vendorExtensions.isArrayOfModel}}
+    {{#vendorExtensions.isArrayOfPrimitive}}
+    //Array of Primitives
+        auto values = json.at("{{baseName}}").get<{{vendorExtensions.arrayItemType}}>();
+        obj.{{setter}}(values);
+    }
+    {{/vendorExtensions.isArrayOfPrimitive}}
+    {{#vendorExtensions.isArrayOfContainer}}
+    //Array of container
+        auto values = json.at("{{baseName}}").get<{{vendorExtensions.arrayItemType}}>();
+        obj.{{setter}}(values);
+    }
+    {{/vendorExtensions.isArrayOfContainer}}
+    {{/vendorExtensions.isArrayOfModel}}
+    {{/vendorExtensions.isArrayOfEnum}}
+    {{/isArray}}
+    {{^isArray}}
+    if (json.contains("{{baseName}}"))
+    {
+        auto value = json.at("{{baseName}}" );
+    {{#isEnum}}
+        // Enum
+        if (value.is_string()) {
+            obj.{{setter}}({{vendorExtensions.enumFromStringHelper}}(value.get<std::string>()));
+        }
+    }
+    {{/isEnum}}
+    {{^isEnum}}
+    {{#isModel}}
+        // Model
+        if (value.is_object()) {
+            obj.{{setter}}({{{datatypeWithEnum}}}::fromJson(value));
+        } else {
+            obj.{{setter}}({{{datatypeWithEnum}}}());
+        }
+    }
+    {{/isModel}}
+    {{^isModel}}
+    //Not model or Enum
+        obj.{{setter}}(value);
+    }
+    {{/isModel}}
+    {{/isEnum}}
+    {{/isArray}}
+    {{/vars}}
+    return obj;
+}
+
+
+{{#vars}}
+{{#vendorExtensions.isEnum}}
+{{vendorExtensions.enumName}} {{vendorExtensions.modelClassName}}::{{getter}}() const { return m_{{nameInCamelCase}}; }
+void {{vendorExtensions.modelClassName}}::{{setter}}(const {{vendorExtensions.enumName}}& {{nameInCamelCase}}) { m_{{nameInCamelCase}} = {{nameInCamelCase}}; }
+{{/vendorExtensions.isEnum}}
+{{^vendorExtensions.isEnum}}
+{{{datatypeWithEnum}}} {{vendorExtensions.modelClassName}}::{{getter}}() const { return m_{{nameInCamelCase}}; }
+void {{vendorExtensions.modelClassName}}::{{setter}}(const {{{datatypeWithEnum}}}& {{nameInCamelCase}}) { m_{{nameInCamelCase}} = {{nameInCamelCase}}; }
+{{/vendorExtensions.isEnum}}
+{{/vars}}
+
+} // namespace {{vendorExtensions.modelNamespace}}
+{{/model}}
+{{/models}}

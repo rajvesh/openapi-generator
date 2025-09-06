@@ -1,0 +1,119 @@
+{{>License}}
+
+#pragma once
+#include <httplib.h>
+{{#includeVariantHeader}}{{{includeVariantHeader}}}{{/includeVariantHeader}}
+{{#includeOptionalHeader}}{{{includeOptionalHeader}}}{{/includeOptionalHeader}}
+{{#modelsUsed}}
+#include "models/{{.}}.h"
+{{/modelsUsed}}
+
+namespace {{apiNamespace}} {
+
+class {{apiClassnameInPascalCase}} {
+public:
+    {{apiClassnameInPascalCase}}() = default;
+    virtual ~{{apiClassnameInPascalCase}}() = default;
+    // Register all the routes with the server instance from derived class.
+    void registerRoutes(httplib::Server& svr);
+    // ======================================
+    // ===== Response type declarations =====
+    // ======================================
+    {{#operations}}
+    {{#operation}}
+    {{#vendorExtensions}}
+    {{#hasAnyResponseSchema}}
+    // Response type for [{{handlerFunctionName}}]
+    using {{responseType}} = std::variant<{{^errorCodeToTypes}}{{#successType}}{{successType}}>;{{/successType}}{{/errorCodeToTypes}}{{#errorCodeToTypes}}
+                                      {{#successType}}{{successType}}// success type{{/successType}}
+                                    , {{errorType}}{{#-last}}>;{{/-last}}{{#-first}}// error types{{/-first}}{{/errorCodeToTypes}}
+
+    {{/hasAnyResponseSchema}}
+    {{/vendorExtensions}}
+    {{/operation}}
+    {{/operations}}
+    // ======================================
+    // ===== Request type declarations =====
+    // ======================================
+    {{#operations}}
+    {{#operation}}
+    {{#vendorExtensions}}
+    {{#hasAnyRequestSchema}}
+    // Request type for [{{handlerFunctionName}}]
+    struct {{requestType}}
+    {
+{{#requestModel}}      std::optional<{{vendorExtensions.requestModelNamespace}}::{{vendorExtensions.requestModel}}> m_request;{{/requestModel}}{{#pathParams}}{{#vendorExtensions.isArray}}
+        {{{dataType}}} m_{{paramName}};{{/vendorExtensions.isArray}}{{^vendorExtensions.isArray}}{{#vendorExtensions.isEnum}}{{#vendorExtensions.enumModelClass}}
+        {{vendorExtensions.requestModelNamespace}}::{{vendorExtensions.enumModelClass}}::{{{vendorExtensions.enumName}}} m_{{paramName}} = {{vendorExtensions.requestModelNamespace}}::{{vendorExtensions.enumModelClass}}::{{vendorExtensions.enumName}}::unknown;{{/vendorExtensions.enumModelClass}}{{^vendorExtensions.enumModelClass}}
+        {{vendorExtensions.requestModelNamespace}}::{{{vendorExtensions.enumName}}} m_{{paramName}} = {{vendorExtensions.requestModelNamespace}}::{{vendorExtensions.enumName}}::unknown;{{/vendorExtensions.enumModelClass}}{{/vendorExtensions.isEnum}}{{^vendorExtensions.isEnum}}{{#vendorExtensions.isLong}}
+        {{{dataType}}} m_{{paramName}};{{/vendorExtensions.isLong}}{{^vendorExtensions.isLong}}{{#vendorExtensions.isInt}}
+        {{{dataType}}} m_{{paramName}};{{/vendorExtensions.isInt}}{{/vendorExtensions.isLong}}{{#vendorExtensions.isFloat}}
+        {{{dataType}}} m_{{paramName}};{{/vendorExtensions.isFloat}}{{#vendorExtensions.isBool}}
+        {{{dataType}}} m_{{paramName}};{{/vendorExtensions.isBool}}{{#vendorExtensions.isDouble}}
+        {{{dataType}}} m_{{paramName}};{{/vendorExtensions.isDouble}}{{#vendorExtensions.isString}}
+        {{{dataType}}} m_{{paramName}};{{/vendorExtensions.isString}}{{/vendorExtensions.isEnum}}{{/vendorExtensions.isArray}}{{/pathParams}}{{#queryParams}}{{#vendorExtensions.isArray}}
+        {{{dataType}}} m_{{paramName}};{{/vendorExtensions.isArray}}{{^vendorExtensions.isArray}}{{#vendorExtensions.isEnum}}{{#vendorExtensions.enumModelClass}}
+        {{vendorExtensions.requestModelNamespace}}::{{vendorExtensions.enumModelClass}}::{{{vendorExtensions.enumName}}} m_{{paramName}} = {{vendorExtensions.requestModelNamespace}}::{{vendorExtensions.enumModelClass}}::{{vendorExtensions.enumName}}::unknown;{{/vendorExtensions.enumModelClass}}{{^vendorExtensions.enumModelClass}}
+        {{vendorExtensions.requestModelNamespace}}::{{{vendorExtensions.enumName}}} m_{{paramName}} = {{vendorExtensions.requestModelNamespace}}::{{vendorExtensions.enumName}}::unknown;{{/vendorExtensions.enumModelClass}}{{/vendorExtensions.isEnum}}{{^vendorExtensions.isEnum}}{{#vendorExtensions.isLong}}
+        {{{dataType}}} m_{{paramName}};{{/vendorExtensions.isLong}}{{^vendorExtensions.isLong}}{{#vendorExtensions.isInt}}
+        {{{dataType}}} m_{{paramName}};{{/vendorExtensions.isInt}}{{/vendorExtensions.isLong}}{{#vendorExtensions.isFloat}}
+        {{{dataType}}} m_{{paramName}};{{/vendorExtensions.isFloat}}{{#vendorExtensions.isBool}}
+        {{{dataType}}} m_{{paramName}};{{/vendorExtensions.isBool}}{{#vendorExtensions.isDouble}}
+        {{{dataType}}} m_{{paramName}};{{/vendorExtensions.isDouble}}{{#vendorExtensions.isString}}
+        {{{dataType}}} m_{{paramName}};{{/vendorExtensions.isString}}{{/vendorExtensions.isEnum}}{{/vendorExtensions.isArray}}{{/queryParams}}{{#headerParams}}{{#vendorExtensions.isArray}}
+        {{{dataType}}} m_{{paramName}};{{/vendorExtensions.isArray}}{{^vendorExtensions.isArray}}{{#vendorExtensions.isEnum}}{{#vendorExtensions.enumModelClass}}
+        {{vendorExtensions.requestModelNamespace}}::{{vendorExtensions.enumModelClass}}::{{{vendorExtensions.enumName}}} m_{{paramName}} = {{vendorExtensions.requestModelNamespace}}::{{vendorExtensions.enumModelClass}}::{{vendorExtensions.enumName}}::unknown;{{/vendorExtensions.enumModelClass}}{{^vendorExtensions.enumModelClass}}
+        {{vendorExtensions.requestModelNamespace}}::{{{vendorExtensions.enumName}}} m_{{paramName}} = {{vendorExtensions.requestModelNamespace}}::{{vendorExtensions.enumName}}::unknown;{{/vendorExtensions.enumModelClass}}{{/vendorExtensions.isEnum}}{{^vendorExtensions.isEnum}}{{#vendorExtensions.isLong}}
+        {{{dataType}}} m_{{paramName}};{{/vendorExtensions.isLong}}{{^vendorExtensions.isLong}}{{#vendorExtensions.isInt}}
+        {{{dataType}}} m_{{paramName}};{{/vendorExtensions.isInt}}{{/vendorExtensions.isLong}}{{#vendorExtensions.isFloat}}
+        {{{dataType}}} m_{{paramName}};{{/vendorExtensions.isFloat}}{{#vendorExtensions.isBool}}
+        {{{dataType}}} m_{{paramName}};{{/vendorExtensions.isBool}}{{#vendorExtensions.isDouble}}
+        {{{dataType}}} m_{{paramName}};{{/vendorExtensions.isDouble}}{{#vendorExtensions.isString}}
+        {{{dataType}}} m_{{paramName}};{{/vendorExtensions.isString}}{{/vendorExtensions.isEnum}}{{/vendorExtensions.isArray}}{{/headerParams}}
+    };
+
+    {{/hasAnyRequestSchema}}
+    {{/vendorExtensions}}
+    {{/operation}}
+    {{/operations}}
+    // ===== Pure virtual functions to he handled by derived classes =====
+    {{#operations}}
+    {{#operation}}
+    {{#vendorExtensions}}
+    /**
+     {{#hasAnyRequestSchema}}
+     * @param {{requestType}} - struct containing all the query parameters and headers and schemas as available.
+     {{/hasAnyRequestSchema}}
+     {{#hasAnyResponseSchema}}
+     * @return {{responseType}} - The response type returned by the handler.
+     {{/hasAnyResponseSchema}}
+     */
+    virtual {{#hasAnyResponseSchema}}{{responseType}}{{/hasAnyResponseSchema}}{{^hasAnyResponseSchema}}void{{/hasAnyResponseSchema}} {{handlerFunctionName}}({{#hasAnyRequestSchema}}const {{requestType}}& params{{/hasAnyRequestSchema}})=0;
+
+    {{/vendorExtensions}}
+    {{/operation}}
+    {{/operations}}
+private:
+    // --- Helper function declarations ---
+    {{#operations}}
+    {{#operation}}
+    {{#vendorExtensions}}
+    {{#hasAnyRequestSchema}}
+    static {{requestType}} parse{{requestType}}(const httplib::Request& req);
+    {{/hasAnyRequestSchema}}
+    {{/vendorExtensions}}
+    {{/operation}}
+    {{/operations}}
+
+    {{#operations}}
+    {{#operation}}
+    {{#vendorExtensions}}
+    {{#hasAnyResponseSchema}}
+    static void handle{{responseType}}(const {{responseType}}& result, httplib::Response& res);
+    {{/hasAnyResponseSchema}}
+    {{/vendorExtensions}}
+    {{/operation}}
+    {{/operations}}
+};
+
+} // namespace {{apiNamespace}}
