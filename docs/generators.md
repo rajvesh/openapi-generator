@@ -12,7 +12,6 @@ The following generators are available:
 * [bash](generators/bash.md)  
 * [c](generators/c.md)  
 * [clojure](generators/clojure.md)  
-* [cpp-oatpp-client](generators/cpp-oatpp-client.md)  
 * [cpp-qt-client](generators/cpp-qt-client.md)  
 * [cpp-restsdk](generators/cpp-restsdk.md)  
 * [cpp-tiny (beta)](generators/cpp-tiny.md)  
@@ -65,11 +64,10 @@ The following generators are available:
 * [scala-pekko](generators/scala-pekko.md)  
 * [scala-sttp](generators/scala-sttp.md)  
 * [scala-sttp4 (beta)](generators/scala-sttp4.md)  
-* [scala-sttp4-jsoniter (beta)](generators/scala-sttp4-jsoniter.md)  
 * [scalaz](generators/scalaz.md)  
 * [swift-combine](generators/swift-combine.md)  
 * [swift5](generators/swift5.md)  
-* [swift6](generators/swift6.md)  
+* [swift6 (beta)](generators/swift6.md)  
 * [typescript (experimental)](generators/typescript.md)  
 * [typescript-angular](generators/typescript-angular.md)  
 * [typescript-aurelia](generators/typescript-aurelia.md)  
@@ -154,7 +152,6 @@ The following generators are available:
 * [scala-play-server](generators/scala-play-server.md)  
 * [scalatra](generators/scalatra.md)  
 * [spring](generators/spring.md)  
-* [typescript-nestjs-server (beta)](generators/typescript-nestjs-server.md)  
 
 
 ## DOCUMENTATION generators
