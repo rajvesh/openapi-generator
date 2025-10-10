@@ -6,77 +6,59 @@
 
 #include "ApiResponse.h"
 
-namespace sample::models {
+namespace sample::openapi::models {
 
 ApiResponse::ApiResponse()
-:m_code(
-    
-        
-            
-                
-                0
-)
-,m_type(
-    
-        
-            
-                ""
-                
-)
-,m_message(
-    
-        
-            
-                ""
-                
-)
-{}
-
+: code(0)
+, type("")
+, message("")
+{
+}
+// =========================================
+// ===== Serialization/Deserialization =====
+// =========================================
 nlohmann::json ApiResponse::toJson(const ApiResponse& obj)
 {
-    nlohmann::json json;
-    // code
-    json["code"] = obj.getCode();
-    // type
-    json["type"] = obj.getType();
-    // message
-    json["message"] = obj.getMessage();
+    nlohmann::json json = obj;
     return json;
 }
 
 ApiResponse ApiResponse::fromJson(const nlohmann::json& json)
 {
-    ApiResponse obj;
-    //code 
-    if (json.contains("code"))
-    {
-        auto value = json.at("code" );
-    //Not model or Enum
-        obj.setCode(value);
-    }
-    //type 
-    if (json.contains("type"))
-    {
-        auto value = json.at("type" );
-    //Not model or Enum
-        obj.setType(value);
-    }
-    //message 
-    if (json.contains("message"))
-    {
-        auto value = json.at("message" );
-    //Not model or Enum
-        obj.setMessage(value);
-    }
+    ApiResponse obj = json.get<ApiResponse>();
     return obj;
 }
 
+// ===================
+// ===== Getters =====
+// ===================
+int ApiResponse::getCode() const
+{
+    return code;
+}
+std::string ApiResponse::getType() const
+{
+    return type;
+}
+std::string ApiResponse::getMessage() const
+{
+    return message;
+}
 
-int ::getCode() const { return m_code; }
-void ::setCode(const int& code) { m_code = code; }
-std::string ::getType() const { return m_type; }
-void ::setType(const std::string& type) { m_type = type; }
-std::string ::getMessage() const { return m_message; }
-void ::setMessage(const std::string& message) { m_message = message; }
+// ===================
+// ===== Setters =====
+// ===================
+void ApiResponse::setCode(const int& codeObj)
+{
+    code = codeObj;
+}
+void ApiResponse::setType(const std::string& typeObj)
+{
+    type = typeObj;
+}
+void ApiResponse::setMessage(const std::string& messageObj)
+{
+    message = messageObj;
+}
 
-} // namespace sample::models
+} // namespace sample::openapi::models

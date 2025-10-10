@@ -53,20 +53,6 @@ std::string jsonString = json.dump();
 // Deserialize from JSON
 auto parsedModel = {{vendorExtensions.modelNamespace}}::{{vendorExtensions.modelClassName}}::fromJson(nlohmann::json::parse(jsonString));
 ```
-
-{{#vendorExtensions.hasEnums}}
-#### Working with Enums
-
-This model contains enum types that are implemented as strong C++ enums with proper string conversion:
-
-```cpp
-// Converting string to enum
-auto enumValue = {{vendorExtensions.modelNamespace}}::{{vendorExtensions.modelClassName}}::<EnumName>FromString("enumValue");
-
-// Converting enum to string
-std::string enumString = {{vendorExtensions.modelNamespace}}::{{vendorExtensions.modelClassName}}::<EnumName>ToString(enumValue);
-```
-{{/vendorExtensions.hasEnums}}
 {{/model}}
 {{/models}}
 
@@ -91,19 +77,14 @@ public:
     {{#hasAnyResponseSchema}}
     {{handlerFunctionResponse}} {{handlerFunctionName}}({{#hasAnyRequestSchema}}const {{handlerFunctionRequest}}& params{{/hasAnyRequestSchema}}) override {
         // Access parameters from the params struct:
-        // - Path parameters: params.m_<paramName>
         // - Query parameters: params.m_<paramName>
         // - Header parameters: params.m_<paramName>
         // - Request body (if present): params.m_request
         // Example:
-        //   int id = params.m_id;        // path param
-        //   std::string type = params.m_type; // query param
+        //   int id = params.m_id; // query/header param
         //   std::string token = params.m_token; // header param
         //   if (params.m_request) { /* use request body */ }
-        
-        // Enum parameters are automatically converted to their proper type:
-        //   MyEnum enumValue = params.m_enumParam; // model-scoped enum
-        
+
         // Implement your logic here
 
     // For successful response:
@@ -139,16 +120,16 @@ public:
 
 int main() {
     // Create server
-    httplib::Server svr;
+    auto svr = std::make_unique<httplib::Server>();
 
     // Create API implementation
-    auto apiImpl = std::make_shared<YourApiImpl>();
+    auto <your_api>Impl = std::make_shared<YourApiImpl>();
 
     // Register routes
-    apiImpl->registerRoutes(svr);
+    <your_api>Impl->RegisterRoutes(std::move(svr));
 
     // Start server on port 8080
-    svr.listen("localhost", 8080);
+    svr->listen("localhost", 8080);
 
     return 0;
 }
@@ -156,20 +137,13 @@ int main() {
 
 ## Error Handling
 
+
 Each API endpoint returns a `std::variant` type that can hold either a success response or one of several error responses.
 The server automatically handles this variant and returns the appropriate HTTP status code and JSON body using the generated helper functions.
 
 For each response type (success or error), a corresponding status code constant (e.g., `MYRESPONSE_200`, `MYERROR_400`) is generated and used by the server when returning that type. You do not need to set the status code manually; just return the appropriate type from your handler.
 
-Error handling for invalid parameters or JSON is performed automatically in the generated route registration code. The server includes automatic handling for:
-
-- Invalid JSON in request body
-- Type errors in request parameters
-- Invalid arguments (e.g., trying to parse a non-numeric string as a number)
-- Out-of-range values
-- Missing required parameters
-
-You can customize error responses by returning the appropriate error type from your handler.
+Error handling for invalid parameters or JSON is performed automatically in the generated route registration code. You can customize error responses by returning the appropriate error type from your handler.
 
 ## Working with Optional Fields
 
@@ -184,44 +158,18 @@ if (model.getOptionalField()) {
 }
 ```
 
-## Parameter Handling
+## Additional Resources
 
-### Path Parameters
-
-Path parameters are extracted directly from URL path segments:
-
+- [cpp-httplib Documentation](https://github.com/yhirose/cpp-httplib)
+- [nlohmann/json Documentation](https://github.com/nlohmann/json)
+- [OpenAPI Generator Documentation](https://openapi-generator.tech/docs/generators/)
 ```cpp
-// For a path like /users/{userId}/items/{itemId}
-auto userId = params.m_userId; // Value from URL path
-auto itemId = params.m_itemId; // Value from URL path
-```
-
-### Query Parameters
-
-Query parameters are extracted from the URL query string:
-
-```cpp
-// For a URL like /users?filter=active&limit=10
-auto filter = params.m_filter; // "active"
-auto limit = params.m_limit;   // 10
-```
-
-### Header Parameters
-
-Header parameters are extracted from HTTP request headers:
-
-```cpp
-// For a header like "Authorization: Bearer token123"
-auto auth = params.m_authorization; // "Bearer token123"
-```
-
-### Enum Parameters
-
-Enum parameters (in path, query, or header) are automatically converted to their enum type:
-
-```cpp
-// If 'status' is an enum type defined in the API
-auto statusParam = params.m_status; // Already converted to proper enum type
+if (model.getOptionalField()) {
+    // Field is present
+    auto value = *model.getOptionalField();
+} else {
+    // Field is not present
+}
 ```
 
 ## Additional Resources

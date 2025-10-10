@@ -8,275 +8,83 @@ constexpr int {{constName}} = {{statusCode}};
 
 
 namespace {{apiNamespace}} {
-{{#operations}}{{#operation}}{{#vendorExtensions}}
+{{#operations}}
+{{#operation}}
+{{#vendorExtensions}}
 {{#hasAnyRequestSchema}}
-
-//Parse request parameters: [ {{httpMethod}} - {{operationIdPascalCase}} ]
-{{apiClassnameInPascalCase}}::{{requestType}} {{apiClassnameInPascalCase}}::parse{{requestType}}(const httplib::Request& req) {
+{{apiClassnameInPascalCase}}::{{requestType}} {{apiClassnameInPascalCase}}::parse{{operationIdPascalCase}}Params(const httplib::Request& req) {
     {{apiClassnameInPascalCase}}::{{requestType}} params;
     {{#requestModel}}
     nlohmann::json json = nlohmann::json::parse(req.body);
-    params.m_request = {{requestModelNamespace}}::{{requestModel}}::fromJson(json);{{/requestModel}}{{#pathParams}}//Path Params
-    {{#vendorExtensions}}{{#isArray}}//array
-    {{#isArrayOfEnum}}//array of enum
-    std::stringstream ss(req.path_params.at("{{baseName}}"));
-    std::string item;
-    while (std::getline(ss, item, ','))
-    {
-        params.m_{{paramName}}.push_back(item);
-    }{{/isArrayOfEnum}}
-    {{#isArrayOfModel}}//array of model
-    std::stringstream ss(req.path_params.at("{{baseName}}"));
-    std::string item;
-    while (std::getline(ss, item, ','))
-    {
-        params.m_{{paramName}}.push_back(item);
-    }{{/isArrayOfModel}}
-    {{#isArrayOfPrimitive}}//array of primitive
-    std::stringstream ss(req.path_params.at("{{baseName}}"));
-    std::string item;
-    while (std::getline(ss, item, ','))
-    {
-        params.m_{{paramName}}.push_back(item);
-    }{{/isArrayOfPrimitive}}
-    {{#isArrayOfContainer}}
-    std::stringstream ss(req.path_params.at("{{baseName}}"));
-    std::string outer_item;
-    while (std::getline(ss, outer_item, ';'))
-    {
-        {{{dataType}}} inner_vector;
-        std::stringstream inner_ss(outer_item);
-        std::string inner_item;
-        while (std::getline(inner_ss, inner_item, ',')) {
-            inner_vector.push_back(inner_item);
+    params.m_request = {{requestModelNamespace}}::{{requestModel}}::fromJson(json);
+    {{/requestModel}}
+    {{#queryParams}}
+        {{#vendorExtensions.isString}}
+    params.m_{{paramName}} = req.get_param_value("{{baseName}}");
+        {{/vendorExtensions.isString}}
+        {{#vendorExtensions.isInt}}
+    params.m_{{paramName}} = std::stoi(req.get_param_value("{{baseName}}"));
+        {{/vendorExtensions.isInt}}
+        {{#vendorExtensions.isLong}}
+    params.m_{{paramName}} = std::stoll(req.get_param_value("{{baseName}}"));
+        {{/vendorExtensions.isLong}}
+        {{#vendorExtensions.isBool}}
+    params.m_{{paramName}} = (req.get_param_value("{{baseName}}") == "true");
+        {{/vendorExtensions.isBool}}
+        {{#vendorExtensions.isDouble}}
+    params.m_{{paramName}} = std::stod(req.get_param_value("{{baseName}}"));
+        {{/vendorExtensions.isDouble}}
+        {{#vendorExtensions.isArray}}
+        size_t count = req.get_param_value_count("{{baseName}}");
+        for (size_t i = 0; i < count; ++i)
+        {
+            auto val = req.get_param_value("{{baseName}}", i);
+            params.m_{{paramName}}.emplace_back(val);
         }
-        params.m_{{paramName}}.push_back(inner_vector);
+        {{/vendorExtensions.isArray}}
+    {{/queryParams}}
+    {{#headerParams}}
+    {{#vendorExtensions.isString}}
+    params.m_{{paramName}} = req.get_header_value("{{baseName}}");
+        {{/vendorExtensions.isString}}
+        {{#vendorExtensions.isInt}}
+    params.m_{{paramName}} = std::stoi(req.get_header_value("{{baseName}}"));
+        {{/vendorExtensions.isInt}}
+        {{#vendorExtensions.isLong}}
+        params.m_{{paramName}} = std::stoll(req.get_header_value("{{baseName}}"));
+        {{/vendorExtensions.isLong}}
+        {{#vendorExtensions.isBool}}
+    params.m_{{paramName}} = (req.get_header_value("{{baseName}}") == "true");
+        {{/vendorExtensions.isBool}}
+        {{#vendorExtensions.isDouble}}
+    params.m_{{paramName}} = std::stod(req.get_header_value("{{baseName}}"));
+    {{/vendorExtensions.isDouble}}
+    {{#vendorExtensions.isArray}}
+    size_t count = req.get_param_value_count("{{baseName}}");
+    for (size_t i = 0; i < count; ++i)
+    {
+    auto val = req.get_param_value("{{baseName}}", i);
+    params.m_{{paramName}}.emplace_back(val);
     }
-    {{/isArrayOfContainer}}
-    {{/isArray}}
-    {{^isArray}}
-    {{#isEnum}}//enum
-    {{#enumModelClass}}//enum model class
-    params.m_{{paramName}} = {{requestModelNamespace}}::{{enumModelClass}}::{{enumFromStringHelper}}(req.path_params.at("{{baseName}}"));
-    {{/enumModelClass}}
-    {{^enumModelClass}}//^enum model class
-    params.m_{{paramName}} = {{requestModelNamespace}}::{{enumFromStringHelper}}(req.path_params.at("{{baseName}}"));
-    {{/enumModelClass}}
-    {{/isEnum}}
-    {{^isEnum}}
-    {{#isPrimitive}}//primitive
-    {{#isLong}}//long
-    params.m_{{paramName}} = std::stol(req.path_params.at("{{baseName}}"));
-    {{/isLong}}
-    {{^isLong}}
-    {{#isInt}}//int
-    params.m_{{paramName}} = std::stoi(req.path_params.at("{{baseName}}"));
-    {{/isInt}}
-    {{/isLong}}
-    {{#isFloat}}//float
-    params.m_{{paramName}} = std::stof(req.path_params.at("{{baseName}}"));
-    {{/isFloat}}
-    {{#isBool}}//bool
-    params.m_{{paramName}} = (req.path_params.at("{{baseName}}") == "true");
-    {{/isBool}}
-    {{#isDouble}}//double
-    params.m_{{paramName}} = std::stod(req.path_params.at("{{baseName}}"));
-    {{/isDouble}}
-    {{#isString}}
-    params.m_{{paramName}} = req.path_params.at("{{baseName}}");
-    {{/isString}}
-    {{/isPrimitive}}
-    {{/isEnum}}{{/isArray}}
-    {{/vendorExtensions}}{{/pathParams}}{{#queryParams}} //Query Params
-    {{#vendorExtensions}}{{#isArray}}
-    {{#isArrayOfEnum}}//Array of enum
-    if (req.has_param("{{baseName}}")) {
-        std::stringstream ss(req.get_param_value("{{baseName}}"));
-        std::string item;
-        while (std::getline(ss, item, ','))
-        {
-            params.m_{{paramName}}.push_back(item);
-        }
-    }{{/isArrayOfEnum}}
-    {{#isArrayOfModel}}//Array of Model
-    if (req.has_param("{{baseName}}")) {
-        std::stringstream ss(req.get_param_value("{{baseName}}"));
-        std::string item;
-        while (std::getline(ss, item, ','))
-        {
-            params.m_{{paramName}}.push_back(item);
-        }
-    }{{/isArrayOfModel}}
-    {{#isArrayOfPrimitive}}//Array of Primitive
-    if (req.has_param("{{baseName}}")) {
-        std::stringstream ss(req.get_param_value("{{baseName}}"));
-        std::string item;
-        while (std::getline(ss, item, ','))
-        {
-            params.m_{{paramName}}.push_back(item);
-        }
-    }{{/isArrayOfPrimitive}}
-    {{#isArrayOfContainer}}//Array of container
-    if (req.has_param("{{baseName}}")) {
-        std::stringstream ss(req.get_param_value("{{baseName}}"));
-        std::string outer_item;
-        while (std::getline(ss, outer_item, ';')) {
-            {{{dataType}}} inner_vector;
-            std::stringstream inner_ss(outer_item);
-            std::string inner_item;
-            while (std::getline(inner_ss, inner_item, ',')) {
-                inner_vector.push_back(inner_item);
-            }
-            params.m_{{paramName}}.push_back(inner_vector);
-        }
-    }
-    {{/isArrayOfContainer}}
-    {{/isArray}}
-    {{^isArray}}
-    {{#isEnum}}//Enum
-    {{#enumModelClass}}//Enum Model Class
-    params.m_{{paramName}} = {{requestModelNamespace}}::{{enumModelClass}}::{{enumFromStringHelper}}(req.path_params.at("{{baseName}}"));
-    {{/enumModelClass}}
-    {{^enumModelClass}}//^Enum Model Class
-    params.m_{{paramName}} = {{requestModelNamespace}}::{{enumFromStringHelper}}(req.path_params.at("{{baseName}}"));
-    {{/enumModelClass}}
-    {{/isEnum}}
-    {{^isEnum}}
-    {{#isPrimitive}}
-    {{#isLong}}//Long
-    params.m_{{paramName}} = std::stol(req.path_params.at("{{baseName}}"));
-    {{/isLong}}
-    {{^isLong}}
-    {{#isInt}}//Int
-    params.m_{{paramName}} = std::stoi(req.path_params.at("{{baseName}}"));
-    {{/isInt}}
-    {{/isLong}}
-    {{#isFloat}}//Float
-    params.m_{{paramName}} = std::stof(req.path_params.at("{{baseName}}"));
-    {{/isFloat}}
-    {{#isBool}}//Bool
-    params.m_{{paramName}} = (req.path_params.at("{{baseName}}") == "true");
-    {{/isBool}}
-    {{#isDouble}}//Double
-    params.m_{{paramName}} = std::stod(req.path_params.at("{{baseName}}"));
-    {{/isDouble}}
-    {{#isString}}//String
-    params.m_{{paramName}} = req.path_params.at("{{baseName}}");
-    {{/isString}}
-    {{/isPrimitive}}
-    {{/isEnum}}{{/isArray}}
-    {{/vendorExtensions}}{{/queryParams}}{{#headerParams}} //HeaderParams
-    {{#vendorExtensions}}{{#isArray}}
-    {{#isArrayOfEnum}}//Array of Enum
-    if (req.has_header("{{baseName}}")) {
-        std::stringstream ss(req.get_header_value("{{baseName}}"));
-        std::string item;
-        while (std::getline(ss, item, ','))
-        {
-            params.m_{{paramName}}.push_back(item);
-        }
-    }{{/isArrayOfEnum}}
-    {{#isArrayOfModel}}//Aray of Model
-    if (req.has_header("{{baseName}}")) {
-        std::stringstream ss(req.get_header_value("{{baseName}}"));
-        std::string item;
-        while (std::getline(ss, item, ','))
-        {
-            params.m_{{paramName}}.push_back(item);
-        }
-    }{{/isArrayOfModel}}
-    {{#isArrayOfPrimitive}}//Array of Primitive
-    if (req.has_header("{{baseName}}")) {
-        std::stringstream ss(req.get_header_value("{{baseName}}"));
-        std::string item;
-        while (std::getline(ss, item, ','))
-        {
-            params.m_{{paramName}}.push_back(item);
-        }
-    }{{/isArrayOfPrimitive}}
-    {{#isArrayOfContainer}}//Array of container
-    if (req.has_header("{{baseName}}")) {
-        std::stringstream ss(req.get_header_value("{{baseName}}"));
-        std::string outer_item;
-        while (std::getline(ss, outer_item, ';')) {
-            {{{dataType}}} inner_vector;
-            std::stringstream inner_ss(outer_item);
-            std::string inner_item;
-            while (std::getline(inner_ss, inner_item, ',')) {
-                inner_vector.push_back(inner_item);
-            }
-            params.m_{{paramName}}.push_back(inner_vector);
-        }
-    }
-    {{/isArrayOfContainer}}
-    {{/isArray}}
-    {{^isArray}}
-    {{#isEnum}}//Enum
-    {{#enumModelClass}}//Enum Model Class
-    params.m_{{paramName}} = {{enumModelClass}}::{{enumFromStringHelper}}(req.path_params.at("{{baseName}}"));
-    {{/enumModelClass}}
-    {{^enumModelClass}}//^Enum Model Class
-    params.m_{{paramName}} = {{requestModelNamespace}}::{{enumFromStringHelper}}(req.path_params.at("{{baseName}}"));
-    {{/enumModelClass}}
-    {{/isEnum}}
-    {{^isEnum}}
-    {{#isPrimitive}}//Primitive
-    {{#isLong}}//Long
-    params.m_{{paramName}} = std.stol(req.path_params.at("{{baseName}}"));
-    {{/isLong}}
-    {{^isLong}}
-    {{#isInt}}//Int
-    params.m_{{paramName}} = std::stoi(req.path_params.at("{{baseName}}"));
-    {{/isInt}}
-    {{/isLong}}
-    {{#isFloat}}//Float
-    params.m_{{paramName}} = std::stof(req.path_params.at("{{baseName}}"));
-    {{/isFloat}}
-    {{#isBool}}//Bool
-    params.m_{{paramName}} = (req.path_params.at("{{baseName}}") == "true");
-    {{/isBool}}
-    {{#isDouble}}//Double
-    params.m_{{paramName}} = std::stod(req.path_params.at("{{baseName}}"));
-    {{/isDouble}}
-    {{#isString}}//String
-    params.m_{{paramName}} = req.path_params.at("{{baseName}}");
-    {{/isString}}
-    {{/isPrimitive}}
-    {{/isEnum}}{{/isArray}}
-    {{/vendorExtensions}}{{/headerParams}}
-
+{{/vendorExtensions.isArray}}
+    {{/headerParams}}
     return params;
 }
 {{/hasAnyRequestSchema}}
 {{#hasAnyResponseSchema}}
-
-//Handle for response received: [ {{httpMethod}} - {{operationIdPascalCase}} ]
 void {{apiClassnameInPascalCase}}::handle{{responseType}}(const {{responseType}}& result, httplib::Response& res) {
     std::visit([&](const auto& value) {
         using T = std::decay_t<decltype(value)>;
-{{#successCodeToTypes}}{{#successType}}{{#-first}}            //Success types{{/-first}}
+{{#successCodeToTypes}}{{#successType}}{{#-first}}        //Success types{{/-first}}
         if constexpr (std::is_same_v<T, {{successType}}>) {
             res.status = {{successConstName}};
-            {{^vendorExtensions.isSuccessResponsePrimitive}}
             res.set_content(value.toJson(value).dump(), "application/json");
-            {{/vendorExtensions.isSuccessResponsePrimitive}}
-            {{#vendorExtensions.isSuccessResponsePrimitive}}
-            nlohmann::json j = { {"Response", value} };
-            res.set_content(j.dump(4), "application/json");
-            {{/vendorExtensions.isSuccessResponsePrimitive}}
         }{{/successType}}{{/successCodeToTypes}}
-{{#errorCodeToTypes}}{{#errorType}}{{#-first}}            //Error types{{/-first}}
+{{#errorCodeToTypes}}{{#errorType}}{{#-first}}        //Error types{{/-first}}
         else if constexpr (std::is_same_v<T, {{errorType}}>) {
             res.status = {{errorConstName}};
-            {{^vendorExtensions.isErrorResponsePrimitive}}
             res.set_content(value.toJson(value).dump(), "application/json");
-            {{/vendorExtensions.isErrorResponsePrimitive}}
-            {{#vendorExtensions.isErrorResponsePrimitive}}
-            std::string str = static_cast<std::string>(value);
-            nlohmann::json j = { "Error", str };
-            res.set_content(j.dump(4), "application/json");
-            {{/vendorExtensions.isErrorResponsePrimitive}}
-        }{{/errorType}}{{/errorCodeToTypes}}
+        }{{/errorType}}{{/errorCodeToTypes}}{{^errorCodeToTypes}}// No Error types defined{{/errorCodeToTypes}}
     }, result);
 }
 {{/hasAnyResponseSchema}}
@@ -284,7 +92,6 @@ void {{apiClassnameInPascalCase}}::handle{{responseType}}(const {{responseType}}
 {{/operation}}
 {{/operations}}
 
-//Register the server instance with all the endpoints available
 void {{apiClassnameInPascalCase}}::registerRoutes(httplib::Server& svr) {
     {{#operations}}
     {{#operation}}
@@ -292,49 +99,41 @@ void {{apiClassnameInPascalCase}}::registerRoutes(httplib::Server& svr) {
     svr.{{httpMethod}}("{{path}}", [this]([[maybe_unused]]const httplib::Request& req, httplib::Response& res) {
         try {
             {{#hasAnyRequestSchema}}
-            auto params = parse{{requestType}}(req);
+            auto params = parse{{operationIdPascalCase}}Params(req);
             {{/hasAnyRequestSchema}}
-            {{#hasAnyResponseSchema}}
             auto result = {{handlerFunctionName}}({{#hasAnyRequestSchema}}params{{/hasAnyRequestSchema}});
+            {{#hasAnyResponseSchema}}
             handle{{responseType}}(result, res);
             {{/hasAnyResponseSchema}}
-            {{^hasAnyResponseSchema}}
-            {{handlerFunctionName}}({{#hasAnyRequestSchema}}params{{/hasAnyRequestSchema}});
-            {{/hasAnyResponseSchema}}
-        }{{#requestModel}}catch (const nlohmann::json::parse_error& e) {
+        } {{#requestModel}}catch (const nlohmann::json::parse_error& e) {
             nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
             res.set_content(errorJson.dump(), "application/json");
-        }catch (const nlohmann::json::type_error& e) {
-            nlohmann::json errorJson = { {"message", "Invalid type in JSON: " + std::string(e.what())} };
+        }  catch (const nlohmann::json::invalid_iterator& e) {
+            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
             res.set_content(errorJson.dump(), "application/json");
-        }{{/requestModel}}{{#hasPrimitiveParams}} catch (const std::invalid_argument& e) {
-            nlohmann::json errorJson = { {"message", "Invalid argument: " + std::string(e.what())} };
+        } catch (const nlohmann::json::type_error& e) {
+            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
             res.set_content(errorJson.dump(), "application/json");
-        }catch (const std::out_of_range& e) {
-            nlohmann::json errorJson = { {"message", "Out of range: " + std::string(e.what())} };
+        }  catch (const nlohmann::json::out_of_range& e) {
+            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
             res.set_content(errorJson.dump(), "application/json");
-        }{{/hasPrimitiveParams}}{{^requestModel}}{{^hasPrimitiveParams}}catch (const std::exception& e) {
+        } catch (const nlohmann::json::other_error& e) {
+            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
+            res.set_content(errorJson.dump(), "application/json");
+        }{{/requestModel}}{{#vendorExtensions.hasPrimitiveParams}} catch (const std::invalid_argument& e) {
             nlohmann::json errorJson = { {"message", "Internal error: " + std::string(e.what())} };
             res.set_content(errorJson.dump(), "application/json");
-        }{{/hasPrimitiveParams}}{{/requestModel}}
+        } catch (const std::out_of_range& e) {
+            nlohmann::json errorJson = { {"message", "Internal error: " + std::string(e.what())} };
+            res.set_content(errorJson.dump(), "application/json");
+        } {{/vendorExtensions.hasPrimitiveParams}}{{^requestModel}}{{^vendorExtensions.hasPrimitiveParams}}catch (const std::exception& e) {
+            nlohmann::json errorJson = { {"message", "Internal error: " + std::string(e.what())} };
+            res.set_content(errorJson.dump(), "application/json");
+        }{{/vendorExtensions.hasPrimitiveParams}}{{/requestModel}}
     });
     {{/vendorExtensions}}
     {{/operation}}
     {{/operations}}
 }
-{{#addApiImplStubs}}
-//addImplStub is true
-{{#operations}}
-{{#operation}}
-{{#vendorExtensions}}
-{{#hasAnyResponseSchema}}{{apiClassnameInPascalCase}}::{{responseType}}{{/hasAnyResponseSchema}}{{^hasAnyResponseSchema}}void{{/hasAnyResponseSchema}} {{apiClassnameInPascalCase}}::{{handlerFunctionName}}({{#hasAnyRequestSchema}}const {{requestType}}& params{{/hasAnyRequestSchema}})
-{
-    {{#hasAnyResponseSchema}}{{successType}} response;
-    return response;{{/hasAnyResponseSchema}}
-}
-{{/vendorExtensions}}
-{{/operation}}
-{{/operations}}
-{{/addApiImplStubs}}
 
 } // namespace {{apiNamespace}}

@@ -9,130 +9,83 @@
 namespace sample::openapi::models {
 
 Order::Order()
-:m_id(
-    
-        
-            
-                
-                0
-)
-,m_petId(
-    
-        
-            
-                
-                0
-)
-,m_quantity(
-    
-        
-            
-                
-                0
-)
-,m_shipDate(
-    
-        
-            
-                
-                ""
-)
-,m_status(
-    
-        
-            
-                ""
-                
-)
-,m_complete(
-    
-        
-            
-                
-                false
-)
-{}
-
+: id(0)
+, petId(0)
+, quantity(0)
+, shipDate("")
+, status("")
+, complete(false)
+{
+}
+// =========================================
+// ===== Serialization/Deserialization =====
+// =========================================
 nlohmann::json Order::toJson(const Order& obj)
 {
-    nlohmann::json json;
-    // id
-    json["id"] = obj.getId();
-    // petId
-    json["petId"] = obj.getPetId();
-    // quantity
-    json["quantity"] = obj.getQuantity();
-    // shipDate
-    json["shipDate"] = obj.getShipDate();
-    // status - Order Status
-    json["status"] = (obj.getStatus());
-    // complete
-    json["complete"] = obj.isComplete();
+    nlohmann::json json = obj;
     return json;
 }
 
 Order Order::fromJson(const nlohmann::json& json)
 {
-    Order obj;
-    //id 
-    if (json.contains("id"))
-    {
-        auto value = json.at("id" );
-    //Not model or Enum
-        obj.setId(value);
-    }
-    //petId 
-    if (json.contains("petId"))
-    {
-        auto value = json.at("petId" );
-    //Not model or Enum
-        obj.setPetId(value);
-    }
-    //quantity 
-    if (json.contains("quantity"))
-    {
-        auto value = json.at("quantity" );
-    //Not model or Enum
-        obj.setQuantity(value);
-    }
-    //shipDate 
-    if (json.contains("shipDate"))
-    {
-        auto value = json.at("shipDate" );
-    //Not model or Enum
-        obj.setShipDate(value);
-    }
-    //status - Order Status 
-    if (json.contains("status"))
-    {
-        auto value = json.at("status" );
-        // Enum
-        if (value.is_string()) {
-            obj.setStatus((value.get<std::string>()));
-        }
-    }
-    //complete 
-    if (json.contains("complete"))
-    {
-        auto value = json.at("complete" );
-    //Not model or Enum
-        obj.setComplete(value);
-    }
+    Order obj = json.get<Order>();
     return obj;
 }
 
+// ===================
+// ===== Getters =====
+// ===================
+long Order::getId() const
+{
+    return id;
+}
+long Order::getPetId() const
+{
+    return petId;
+}
+int Order::getQuantity() const
+{
+    return quantity;
+}
+std::string Order::getShipDate() const
+{
+    return shipDate;
+}
+Status Order::getStatus() const
+{
+    return status;
+}
+bool Order::isComplete() const
+{
+    return complete;
+}
 
-long ::getId() const { return m_id; }
-void ::setId(const long& id) { m_id = id; }
-long ::getPetId() const { return m_petId; }
-void ::setPetId(const long& petId) { m_petId = petId; }
-int ::getQuantity() const { return m_quantity; }
-void ::setQuantity(const int& quantity) { m_quantity = quantity; }
-Date ::getShipDate() const { return m_shipDate; }
-void ::setShipDate(const Date& shipDate) { m_shipDate = shipDate; }
-StatusEnum ::getStatus() const { return m_status; }
-void ::setStatus(const StatusEnum& status) { m_status = status; }
-bool ::isComplete() const { return m_complete; }
-void ::setComplete(const bool& complete) { m_complete = complete; }
+// ===================
+// ===== Setters =====
+// ===================
+void Order::setId(const long& idObj)
+{
+    id = idObj;
+}
+void Order::setPetId(const long& petIdObj)
+{
+    petId = petIdObj;
+}
+void Order::setQuantity(const int& quantityObj)
+{
+    quantity = quantityObj;
+}
+void Order::setShipDate(const std::string& shipDateObj)
+{
+    shipDate = shipDateObj;
+}
+void Order::setStatus(const Status& statusObj)
+{
+    status = statusObj;
+}
+void Order::setComplete(const bool& completeObj)
+{
+    complete = completeObj;
+}
 
 } // namespace sample::openapi::models
