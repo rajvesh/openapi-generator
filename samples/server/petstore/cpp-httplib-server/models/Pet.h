@@ -5,36 +5,20 @@
 */
 
 #pragma once
-
 #include <nlohmann/json.hpp>
-
 #include "Category.h"
+
 #include "Tag.h"
 
-#include <cstdint>
+#include <vector>
+
+#include <string>
 
 namespace sample::openapi::models {
 
 class Pet
 {
 public:
-        // Enum declarations (property-scoped)
-    enum class StatusEnum {
-                unknown
-    };
-    static inline  (const std::string& value) {
-        if (value.empty()) {
-            return ::unknown;
-        }
-        return ::unknown;
-    }
-    static inline std::string (const & e) {
-        switch (e) {
-            case ::unknown: return "unknown";
-            default: return "unknown";
-        }
-    }
-
     Pet();
     virtual ~Pet() = default;
 
@@ -53,16 +37,20 @@ public:
     void setPhotoUrls(const std::vector<std::string>& photoUrls);
     [[nodiscard]] std::vector<Tag> getTags() const;
     void setTags(const std::vector<Tag>& tags);
-    [[nodiscard]] StatusEnum getStatus() const;
-    void setStatus(const StatusEnum& status);
-
+    [[nodiscard]] Status getStatus() const;
+    void setStatus(const Status& status);
+    // nlohmann::json NLOHMANN_DEFINE_TYPE_INTRUSIVE macro for serialization and deserialization
+    // In order to use this macro, member variables must match with the json values, else this MACRO will throw exceptions.
+    // Hence the member variables are named exactly as in the json schema.
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(Pet, id, category, name, photoUrls, tags, status)
 private:
-    long m_id;
-    Category m_category;
-    std::string m_name;
-    std::vector<std::string> m_photoUrls;
-    std::vector<Tag> m_tags;
-     m_status;
+
+    long id;
+    Category category;
+    std::string name;
+    std::vector<std::string> photoUrls;
+    std::vector<Tag> tags;
+    Status status;
 };
 
 } // namespace sample::openapi::models

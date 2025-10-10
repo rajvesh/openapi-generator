@@ -306,7 +306,17 @@
             "content": {
               "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PetError"
+                "$ref": "#/components/schemas/PetError400"
+              }
+              }
+            }
+          },
+          "500": {
+            "description": "Invalid tag value",
+            "content": {
+              "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PetError500"
               }
               }
             }
@@ -1153,7 +1163,22 @@
           }
         }
       },
-      "PetError" : {
+      "PetError400" : {
+        "type" : "object",
+        "properties": {
+          "code": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "type": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "PetError500" : {
         "type" : "object",
         "properties": {
           "code": {

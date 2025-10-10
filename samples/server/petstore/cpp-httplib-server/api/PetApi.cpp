@@ -7,373 +7,244 @@
 #include "PetApi.h"
 
 constexpr int HTTP_RESPONSE_CODE_PET = 200;
-constexpr int HTTP_RESPONSE_CODE_PET_ERROR = 400;
-constexpr int HTTP_RESPONSE_CODE_LIST = 200;
-constexpr int HTTP_RESPONSE_CODE_RESPONSE = 200;
+constexpr int HTTP_RESPONSE_CODE_PET_ERROR400 = 400;
+constexpr int HTTP_RESPONSE_CODE_PET_ERROR500 = 500;
+constexpr int HTTP_RESPONSE_CODE_PET_LIST = 200;
+constexpr int HTTP_RESPONSE_CODE_API_RESPONSE = 200;
 
 
 namespace sample::openapi::api {
-
-
-//Parse request parameters: [ Post - Pet ]
-Pet::PetRequestForPost Pet::parsePetRequestForPost(const httplib::Request& req) {
-    Pet::PetRequestForPost params;
+Pet::PetPostRequest Pet::parsePetParams(const httplib::Request& req) {
+    Pet::PetPostRequest params;
     nlohmann::json json = nlohmann::json::parse(req.body);
     params.m_request = models::Pet::fromJson(json);
-
     return params;
 }
-
-//Handle for response received: [ Post - Pet ]
-void Pet::handlePetResponseForPost(const PetResponseForPost& result, httplib::Response& res) {
+void Pet::handlePetPostResponse(const PetPostResponse& result, httplib::Response& res) {
     std::visit([&](const auto& value) {
         using T = std::decay_t<decltype(value)>;
-        //Success types
+//Success types
         if constexpr (std::is_same_v<T, models::Pet>) {
             res.status = HTTP_RESPONSE_CODE_PET;
             res.set_content(value.toJson(value).dump(), "application/json");
         }
 
+// No Error types defined
     }, result);
 }
-
-
-//Parse request parameters: [ Delete - PetId ]
-Pet::PetIdRequestForDelete Pet::parsePetIdRequestForDelete(const httplib::Request& req) {
-    Pet::PetIdRequestForDelete params;
-//Path Params
-            //primitive
-    //long
-    params.m_petId = std::stol(req.path_params.at("petId"));
-                
-     //HeaderParams
-            //Primitive
-                        //String
-    params.m_apiKey = req.path_params.at("api_key");
-    
-    
-
+Pet::PetIdDeleteRequest Pet::parsePetIdParams(const httplib::Request& req) {
+    Pet::PetIdDeleteRequest params;
     return params;
 }
-
-
-//Parse request parameters: [ Get - FindByStatus ]
-Pet::FindByStatusRequestForGet Pet::parseFindByStatusRequestForGet(const httplib::Request& req) {
-    Pet::FindByStatusRequestForGet params;
- //Query Params
-    
-    //Array of enum
-    if (req.has_param("status")) {
-        std::stringstream ss(req.get_param_value("status"));
-        std::string item;
-        while (std::getline(ss, item, ','))
-        {
-            params.m_status.push_back(item);
-        }
-    }
-    
-    
-    
-    
-
+Pet::FindByStatusGetRequest Pet::parseFindByStatusParams(const httplib::Request& req) {
+    Pet::FindByStatusGetRequest params;
     return params;
 }
-
-//Handle for response received: [ Get - FindByStatus ]
-void Pet::handleFindByStatusResponseForGet(const FindByStatusResponseForGet& result, httplib::Response& res) {
+void Pet::handleFindByStatusGetResponse(const FindByStatusGetResponse& result, httplib::Response& res) {
     std::visit([&](const auto& value) {
         using T = std::decay_t<decltype(value)>;
-        //Success types
+//Success types
         if constexpr (std::is_same_v<T, models::Pet>) {
             res.status = HTTP_RESPONSE_CODE_PET;
             res.set_content(value.toJson(value).dump(), "application/json");
         }
 
+// No Error types defined
     }, result);
 }
-
-
-//Parse request parameters: [ Get - FindByTags ]
-Pet::FindByTagsRequestForGet Pet::parseFindByTagsRequestForGet(const httplib::Request& req) {
-    Pet::FindByTagsRequestForGet params;
- //Query Params
-    
-    
-    
-    //Array of Primitive
-    if (req.has_param("tags")) {
-        std::stringstream ss(req.get_param_value("tags"));
-        std::string item;
-        while (std::getline(ss, item, ','))
-        {
-            params.m_tags.push_back(item);
-        }
-    }
-    
-    
-
+Pet::FindByTagsGetRequest Pet::parseFindByTagsParams(const httplib::Request& req) {
+    Pet::FindByTagsGetRequest params;
     return params;
 }
-
-//Handle for response received: [ Get - FindByTags ]
-void Pet::handleFindByTagsResponseForGet(const FindByTagsResponseForGet& result, httplib::Response& res) {
+void Pet::handleFindByTagsGetResponse(const FindByTagsGetResponse& result, httplib::Response& res) {
     std::visit([&](const auto& value) {
         using T = std::decay_t<decltype(value)>;
-        //Success types
+//Success types
         if constexpr (std::is_same_v<T, models::Pet>) {
             res.status = HTTP_RESPONSE_CODE_PET;
             res.set_content(value.toJson(value).dump(), "application/json");
         }
-        //Error types
-        else if constexpr (std::is_same_v<T, models::PetError>) {
-            res.status = HTTP_RESPONSE_CODE_PET_ERROR;
+//Error types
+        else if constexpr (std::is_same_v<T, models::PetError400>) {
+            res.status = HTTP_RESPONSE_CODE_PET_ERROR400;
             res.set_content(value.toJson(value).dump(), "application/json");
         }
+        else if constexpr (std::is_same_v<T, models::PetError500>) {
+            res.status = HTTP_RESPONSE_CODE_PET_ERROR500;
+            res.set_content(value.toJson(value).dump(), "application/json");
+        }
+
     }, result);
 }
-
-
-//Handle for response received: [ Get - PetId ]
-void Pet::handlePetIdResponseForGet(const PetIdResponseForGet& result, httplib::Response& res) {
+void Pet::handlePetIdGetResponse(const PetIdGetResponse& result, httplib::Response& res) {
     std::visit([&](const auto& value) {
         using T = std::decay_t<decltype(value)>;
-        //Success types
+//Success types
         if constexpr (std::is_same_v<T, models::Pet>) {
             res.status = HTTP_RESPONSE_CODE_PET;
             res.set_content(value.toJson(value).dump(), "application/json");
         }
 
+// No Error types defined
     }, result);
 }
-
-
-//Parse request parameters: [ Get - List ]
-Pet::ListRequestForGet Pet::parseListRequestForGet(const httplib::Request& req) {
-    Pet::ListRequestForGet params;
- //Query Params
-        //Enum
-    //Enum Model Class
-    params.m_status = models::Pet::StatusEnumFromString(req.path_params.at("status"));
-    
-     //Query Params
-            //Long
-    params.m_categoryId = std::stol(req.path_params.at("categoryId"));
-                    
-     //Query Params
-    
-    
-    
-    //Array of Primitive
-    if (req.has_param("tagIds")) {
-        std::stringstream ss(req.get_param_value("tagIds"));
-        std::string item;
-        while (std::getline(ss, item, ','))
-        {
-            params.m_tagIds.push_back(item);
-        }
-    }
-    
-     //Query Params
-                //Int
-    params.m_page = std::stoi(req.path_params.at("page"));
-                    
-     //Query Params
-                //Int
-    params.m_pageSize = std::stoi(req.path_params.at("pageSize"));
-                    
-    
-
+Pet::ListGetRequest Pet::parseListParams(const httplib::Request& req) {
+    Pet::ListGetRequest params;
     return params;
 }
-
-//Handle for response received: [ Get - List ]
-void Pet::handleListResponseForGet(const ListResponseForGet& result, httplib::Response& res) {
+void Pet::handleListGetResponse(const ListGetResponse& result, httplib::Response& res) {
     std::visit([&](const auto& value) {
         using T = std::decay_t<decltype(value)>;
-        //Success types
-        if constexpr (std::is_same_v<T, models::List>) {
-            res.status = HTTP_RESPONSE_CODE_LIST;
+//Success types
+        if constexpr (std::is_same_v<T, models::PetList>) {
+            res.status = HTTP_RESPONSE_CODE_PET_LIST;
             res.set_content(value.toJson(value).dump(), "application/json");
         }
 
+// No Error types defined
     }, result);
 }
-
-
-//Parse request parameters: [ Put - Pet ]
-Pet::PetRequestForPut Pet::parsePetRequestForPut(const httplib::Request& req) {
-    Pet::PetRequestForPut params;
+Pet::PetPutRequest Pet::parsePetParams(const httplib::Request& req) {
+    Pet::PetPutRequest params;
     nlohmann::json json = nlohmann::json::parse(req.body);
     params.m_request = models::Pet::fromJson(json);
-
     return params;
 }
-
-//Handle for response received: [ Put - Pet ]
-void Pet::handlePetResponseForPut(const PetResponseForPut& result, httplib::Response& res) {
+void Pet::handlePetPutResponse(const PetPutResponse& result, httplib::Response& res) {
     std::visit([&](const auto& value) {
         using T = std::decay_t<decltype(value)>;
-        //Success types
+//Success types
         if constexpr (std::is_same_v<T, models::Pet>) {
             res.status = HTTP_RESPONSE_CODE_PET;
             res.set_content(value.toJson(value).dump(), "application/json");
         }
 
+// No Error types defined
     }, result);
 }
-
-
-
-//Handle for response received: [ Post - PetIdUploadImage ]
-void Pet::handlePetIdUploadImageResponseForPost(const PetIdUploadImageResponseForPost& result, httplib::Response& res) {
+void Pet::handlePetIdUploadImagePostResponse(const PetIdUploadImagePostResponse& result, httplib::Response& res) {
     std::visit([&](const auto& value) {
         using T = std::decay_t<decltype(value)>;
-        //Success types
-        if constexpr (std::is_same_v<T, models::Response>) {
-            res.status = HTTP_RESPONSE_CODE_RESPONSE;
+//Success types
+        if constexpr (std::is_same_v<T, models::ApiResponse>) {
+            res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
             res.set_content(value.toJson(value).dump(), "application/json");
         }
 
+// No Error types defined
     }, result);
 }
 
-//Register the server instance with all the endpoints available
 void Pet::registerRoutes(httplib::Server& svr) {
     svr.Post("/pet", [this]([[maybe_unused]]const httplib::Request& req, httplib::Response& res) {
         try {
-            auto params = parsePetRequestForPost(req);
-            auto result = petHandlerForPost(params);
-            handlePetResponseForPost(result, res);
-        }catch (const nlohmann::json::parse_error& e) {
+            auto params = parsePetParams(req);
+            auto result = handlePostForPet(params);
+            handlePetPostResponse(result, res);
+        } catch (const nlohmann::json::parse_error& e) {
             nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
             res.set_content(errorJson.dump(), "application/json");
-        }catch (const nlohmann::json::type_error& e) {
-            nlohmann::json errorJson = { {"message", "Invalid type in JSON: " + std::string(e.what())} };
+        }  catch (const nlohmann::json::invalid_iterator& e) {
+            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
+            res.set_content(errorJson.dump(), "application/json");
+        } catch (const nlohmann::json::type_error& e) {
+            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
+            res.set_content(errorJson.dump(), "application/json");
+        }  catch (const nlohmann::json::out_of_range& e) {
+            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
+            res.set_content(errorJson.dump(), "application/json");
+        } catch (const nlohmann::json::other_error& e) {
+            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
             res.set_content(errorJson.dump(), "application/json");
         }
     });
     svr.Delete("/pet/{petId}", [this]([[maybe_unused]]const httplib::Request& req, httplib::Response& res) {
         try {
-            auto params = parsePetIdRequestForDelete(req);
-            petIdHandlerForDelete(params);
-        }catch (const std::exception& e) {
+            auto params = parsePetIdParams(req);
+            auto result = handleDeleteForPetId(params);
+        } catch (const std::exception& e) {
             nlohmann::json errorJson = { {"message", "Internal error: " + std::string(e.what())} };
             res.set_content(errorJson.dump(), "application/json");
         }
     });
     svr.Get("/pet/findByStatus", [this]([[maybe_unused]]const httplib::Request& req, httplib::Response& res) {
         try {
-            auto params = parseFindByStatusRequestForGet(req);
-            auto result = findByStatusHandlerForGet(params);
-            handleFindByStatusResponseForGet(result, res);
-        }catch (const std::exception& e) {
+            auto params = parseFindByStatusParams(req);
+            auto result = handleGetForFindByStatus(params);
+            handleFindByStatusGetResponse(result, res);
+        } catch (const std::exception& e) {
             nlohmann::json errorJson = { {"message", "Internal error: " + std::string(e.what())} };
             res.set_content(errorJson.dump(), "application/json");
         }
     });
     svr.Get("/pet/findByTags", [this]([[maybe_unused]]const httplib::Request& req, httplib::Response& res) {
         try {
-            auto params = parseFindByTagsRequestForGet(req);
-            auto result = findByTagsHandlerForGet(params);
-            handleFindByTagsResponseForGet(result, res);
-        }catch (const std::exception& e) {
+            auto params = parseFindByTagsParams(req);
+            auto result = handleGetForFindByTags(params);
+            handleFindByTagsGetResponse(result, res);
+        } catch (const std::exception& e) {
             nlohmann::json errorJson = { {"message", "Internal error: " + std::string(e.what())} };
             res.set_content(errorJson.dump(), "application/json");
         }
     });
     svr.Get("/pet/{petId}", [this]([[maybe_unused]]const httplib::Request& req, httplib::Response& res) {
         try {
-            auto result = petIdHandlerForGet();
-            handlePetIdResponseForGet(result, res);
-        }catch (const std::exception& e) {
+            auto result = handleGetForPetId();
+            handlePetIdGetResponse(result, res);
+        } catch (const std::exception& e) {
             nlohmann::json errorJson = { {"message", "Internal error: " + std::string(e.what())} };
             res.set_content(errorJson.dump(), "application/json");
         }
     });
     svr.Get("/pet/list", [this]([[maybe_unused]]const httplib::Request& req, httplib::Response& res) {
         try {
-            auto params = parseListRequestForGet(req);
-            auto result = listHandlerForGet(params);
-            handleListResponseForGet(result, res);
-        }catch (const std::exception& e) {
+            auto params = parseListParams(req);
+            auto result = handleGetForList(params);
+            handleListGetResponse(result, res);
+        } catch (const std::exception& e) {
             nlohmann::json errorJson = { {"message", "Internal error: " + std::string(e.what())} };
             res.set_content(errorJson.dump(), "application/json");
         }
     });
     svr.Put("/pet", [this]([[maybe_unused]]const httplib::Request& req, httplib::Response& res) {
         try {
-            auto params = parsePetRequestForPut(req);
-            auto result = petHandlerForPut(params);
-            handlePetResponseForPut(result, res);
-        }catch (const nlohmann::json::parse_error& e) {
+            auto params = parsePetParams(req);
+            auto result = handlePutForPet(params);
+            handlePetPutResponse(result, res);
+        } catch (const nlohmann::json::parse_error& e) {
             nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
             res.set_content(errorJson.dump(), "application/json");
-        }catch (const nlohmann::json::type_error& e) {
-            nlohmann::json errorJson = { {"message", "Invalid type in JSON: " + std::string(e.what())} };
+        }  catch (const nlohmann::json::invalid_iterator& e) {
+            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
+            res.set_content(errorJson.dump(), "application/json");
+        } catch (const nlohmann::json::type_error& e) {
+            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
+            res.set_content(errorJson.dump(), "application/json");
+        }  catch (const nlohmann::json::out_of_range& e) {
+            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
+            res.set_content(errorJson.dump(), "application/json");
+        } catch (const nlohmann::json::other_error& e) {
+            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
             res.set_content(errorJson.dump(), "application/json");
         }
     });
     svr.Post("/pet/{petId}", [this]([[maybe_unused]]const httplib::Request& req, httplib::Response& res) {
         try {
-            petIdHandlerForPost();
-        }catch (const std::exception& e) {
+            auto result = handlePostForPetId();
+        } catch (const std::exception& e) {
             nlohmann::json errorJson = { {"message", "Internal error: " + std::string(e.what())} };
             res.set_content(errorJson.dump(), "application/json");
         }
     });
     svr.Post("/pet/{petId}/uploadImage", [this]([[maybe_unused]]const httplib::Request& req, httplib::Response& res) {
         try {
-            auto result = petIdUploadImageHandlerForPost();
-            handlePetIdUploadImageResponseForPost(result, res);
-        }catch (const std::exception& e) {
+            auto result = handlePostForPetIdUploadImage();
+            handlePetIdUploadImagePostResponse(result, res);
+        } catch (const std::exception& e) {
             nlohmann::json errorJson = { {"message", "Internal error: " + std::string(e.what())} };
             res.set_content(errorJson.dump(), "application/json");
         }
     });
-}
-//addImplStub is true
-Pet::PetResponseForPost Pet::petHandlerForPost(const PetRequestForPost& params)
-{
-    models::Pet response;
-    return response;
-}
-void Pet::petIdHandlerForDelete(const PetIdRequestForDelete& params)
-{
-    
-}
-Pet::FindByStatusResponseForGet Pet::findByStatusHandlerForGet(const FindByStatusRequestForGet& params)
-{
-    models::Pet response;
-    return response;
-}
-Pet::FindByTagsResponseForGet Pet::findByTagsHandlerForGet(const FindByTagsRequestForGet& params)
-{
-    models::Pet response;
-    return response;
-}
-Pet::PetIdResponseForGet Pet::petIdHandlerForGet()
-{
-    models::Pet response;
-    return response;
-}
-Pet::ListResponseForGet Pet::listHandlerForGet(const ListRequestForGet& params)
-{
-    models::List response;
-    return response;
-}
-Pet::PetResponseForPut Pet::petHandlerForPut(const PetRequestForPut& params)
-{
-    models::Pet response;
-    return response;
-}
-void Pet::petIdHandlerForPost()
-{
-    
-}
-Pet::PetIdUploadImageResponseForPost Pet::petIdUploadImageHandlerForPost()
-{
-    models::Response response;
-    return response;
 }
 
 } // namespace sample::openapi::api

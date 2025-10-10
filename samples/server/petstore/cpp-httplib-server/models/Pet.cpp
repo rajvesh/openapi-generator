@@ -9,119 +9,83 @@
 namespace sample::openapi::models {
 
 Pet::Pet()
-:m_id(
-    
-        
-            
-                
-                0
-)
-,m_category(
-    
-        Category()
-)
-,m_name(
-    
-        
-            
-                ""
-                
-)
-,m_photoUrls(
-    
-        
-            {}
-)
-,m_tags(
-    
-        
-            {}
-)
-,m_status(
-    
-        
-            
-                ""
-                
-)
-{}
-
+: id(0)
+, category(Category())
+, name("")
+, photoUrls(std::vector<std::string>())
+, tags(std::vector<Tag>())
+, status("")
+{
+}
+// =========================================
+// ===== Serialization/Deserialization =====
+// =========================================
 nlohmann::json Pet::toJson(const Pet& obj)
 {
-    nlohmann::json json;
-    // id
-    json["id"] = obj.getId();
-    // category
-    json["category"] = Category::toJson(obj.getCategory());
-    // name
-    json["name"] = obj.getName();
-    // photoUrls
-    // tags
-    // status - pet status in the store
-    json["status"] = (obj.getStatus());
+    nlohmann::json json = obj;
     return json;
 }
 
 Pet Pet::fromJson(const nlohmann::json& json)
 {
-    Pet obj;
-    //id 
-    if (json.contains("id"))
-    {
-        auto value = json.at("id" );
-    //Not model or Enum
-        obj.setId(value);
-    }
-    //category 
-    if (json.contains("category"))
-    {
-        auto value = json.at("category" );
-        // Model
-        if (value.is_object()) {
-            obj.setCategory(Category::fromJson(value));
-        } else {
-            obj.setCategory(Category());
-        }
-    }
-    //name 
-    if (json.contains("name"))
-    {
-        auto value = json.at("name" );
-    //Not model or Enum
-        obj.setName(value);
-    }
-    //photoUrls 
-    //array
-    if(json.contains("photoUrls"))
-    {
-    //tags 
-    //array
-    if(json.contains("tags"))
-    {
-    //status - pet status in the store 
-    if (json.contains("status"))
-    {
-        auto value = json.at("status" );
-        // Enum
-        if (value.is_string()) {
-            obj.setStatus((value.get<std::string>()));
-        }
-    }
+    Pet obj = json.get<Pet>();
     return obj;
 }
 
+// ===================
+// ===== Getters =====
+// ===================
+long Pet::getId() const
+{
+    return id;
+}
+Category Pet::getCategory() const
+{
+    return category;
+}
+std::string Pet::getName() const
+{
+    return name;
+}
+std::vector<std::string> Pet::getPhotoUrls() const
+{
+    return photoUrls;
+}
+std::vector<Tag> Pet::getTags() const
+{
+    return tags;
+}
+Status Pet::getStatus() const
+{
+    return status;
+}
 
-long ::getId() const { return m_id; }
-void ::setId(const long& id) { m_id = id; }
-Category ::getCategory() const { return m_category; }
-void ::setCategory(const Category& category) { m_category = category; }
-std::string ::getName() const { return m_name; }
-void ::setName(const std::string& name) { m_name = name; }
-std::vector<std::string> ::getPhotoUrls() const { return m_photoUrls; }
-void ::setPhotoUrls(const std::vector<std::string>& photoUrls) { m_photoUrls = photoUrls; }
-std::vector<Tag> ::getTags() const { return m_tags; }
-void ::setTags(const std::vector<Tag>& tags) { m_tags = tags; }
-StatusEnum ::getStatus() const { return m_status; }
-void ::setStatus(const StatusEnum& status) { m_status = status; }
+// ===================
+// ===== Setters =====
+// ===================
+void Pet::setId(const long& idObj)
+{
+    id = idObj;
+}
+void Pet::setCategory(const Category& categoryObj)
+{
+    category = categoryObj;
+}
+void Pet::setName(const std::string& nameObj)
+{
+    name = nameObj;
+}
+void Pet::setPhotoUrls(const std::vector<std::string>& photoUrlsObj)
+{
+    photoUrls = photoUrlsObj;
+}
+void Pet::setTags(const std::vector<Tag>& tagsObj)
+{
+    tags = tagsObj;
+}
+void Pet::setStatus(const Status& statusObj)
+{
+    status = statusObj;
+}
 
 } // namespace sample::openapi::models
