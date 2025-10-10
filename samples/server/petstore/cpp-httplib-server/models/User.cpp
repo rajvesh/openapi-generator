@@ -9,164 +9,101 @@
 namespace sample::openapi::models {
 
 User::User()
-:m_id(
-    
-        
-            
-                
-                0
-)
-,m_username(
-    
-        
-            
-                ""
-                
-)
-,m_firstName(
-    
-        
-            
-                ""
-                
-)
-,m_lastName(
-    
-        
-            
-                ""
-                
-)
-,m_email(
-    
-        
-            
-                ""
-                
-)
-,m_password(
-    
-        
-            
-                ""
-                
-)
-,m_phone(
-    
-        
-            
-                ""
-                
-)
-,m_userStatus(
-    
-        
-            
-                
-                0
-)
-{}
-
+: id(0)
+, username("")
+, firstName("")
+, lastName("")
+, email("")
+, password("")
+, phone("")
+, userStatus(0)
+{
+}
+// =========================================
+// ===== Serialization/Deserialization =====
+// =========================================
 nlohmann::json User::toJson(const User& obj)
 {
-    nlohmann::json json;
-    // id
-    json["id"] = obj.getId();
-    // username
-    json["username"] = obj.getUsername();
-    // firstName
-    json["firstName"] = obj.getFirstName();
-    // lastName
-    json["lastName"] = obj.getLastName();
-    // email
-    json["email"] = obj.getEmail();
-    // password
-    json["password"] = obj.getPassword();
-    // phone
-    json["phone"] = obj.getPhone();
-    // userStatus - User Status
-    json["userStatus"] = obj.getUserStatus();
+    nlohmann::json json = obj;
     return json;
 }
 
 User User::fromJson(const nlohmann::json& json)
 {
-    User obj;
-    //id 
-    if (json.contains("id"))
-    {
-        auto value = json.at("id" );
-    //Not model or Enum
-        obj.setId(value);
-    }
-    //username 
-    if (json.contains("username"))
-    {
-        auto value = json.at("username" );
-    //Not model or Enum
-        obj.setUsername(value);
-    }
-    //firstName 
-    if (json.contains("firstName"))
-    {
-        auto value = json.at("firstName" );
-    //Not model or Enum
-        obj.setFirstName(value);
-    }
-    //lastName 
-    if (json.contains("lastName"))
-    {
-        auto value = json.at("lastName" );
-    //Not model or Enum
-        obj.setLastName(value);
-    }
-    //email 
-    if (json.contains("email"))
-    {
-        auto value = json.at("email" );
-    //Not model or Enum
-        obj.setEmail(value);
-    }
-    //password 
-    if (json.contains("password"))
-    {
-        auto value = json.at("password" );
-    //Not model or Enum
-        obj.setPassword(value);
-    }
-    //phone 
-    if (json.contains("phone"))
-    {
-        auto value = json.at("phone" );
-    //Not model or Enum
-        obj.setPhone(value);
-    }
-    //userStatus - User Status 
-    if (json.contains("userStatus"))
-    {
-        auto value = json.at("userStatus" );
-    //Not model or Enum
-        obj.setUserStatus(value);
-    }
+    User obj = json.get<User>();
     return obj;
 }
 
+// ===================
+// ===== Getters =====
+// ===================
+long User::getId() const
+{
+    return id;
+}
+std::string User::getUsername() const
+{
+    return username;
+}
+std::string User::getFirstName() const
+{
+    return firstName;
+}
+std::string User::getLastName() const
+{
+    return lastName;
+}
+std::string User::getEmail() const
+{
+    return email;
+}
+std::string User::getPassword() const
+{
+    return password;
+}
+std::string User::getPhone() const
+{
+    return phone;
+}
+int User::getUserStatus() const
+{
+    return userStatus;
+}
 
-long ::getId() const { return m_id; }
-void ::setId(const long& id) { m_id = id; }
-std::string ::getUsername() const { return m_username; }
-void ::setUsername(const std::string& username) { m_username = username; }
-std::string ::getFirstName() const { return m_firstName; }
-void ::setFirstName(const std::string& firstName) { m_firstName = firstName; }
-std::string ::getLastName() const { return m_lastName; }
-void ::setLastName(const std::string& lastName) { m_lastName = lastName; }
-std::string ::getEmail() const { return m_email; }
-void ::setEmail(const std::string& email) { m_email = email; }
-std::string ::getPassword() const { return m_password; }
-void ::setPassword(const std::string& password) { m_password = password; }
-std::string ::getPhone() const { return m_phone; }
-void ::setPhone(const std::string& phone) { m_phone = phone; }
-int ::getUserStatus() const { return m_userStatus; }
-void ::setUserStatus(const int& userStatus) { m_userStatus = userStatus; }
+// ===================
+// ===== Setters =====
+// ===================
+void User::setId(const long& idObj)
+{
+    id = idObj;
+}
+void User::setUsername(const std::string& usernameObj)
+{
+    username = usernameObj;
+}
+void User::setFirstName(const std::string& firstNameObj)
+{
+    firstName = firstNameObj;
+}
+void User::setLastName(const std::string& lastNameObj)
+{
+    lastName = lastNameObj;
+}
+void User::setEmail(const std::string& emailObj)
+{
+    email = emailObj;
+}
+void User::setPassword(const std::string& passwordObj)
+{
+    password = passwordObj;
+}
+void User::setPhone(const std::string& phoneObj)
+{
+    phone = phoneObj;
+}
+void User::setUserStatus(const int& userStatusObj)
+{
+    userStatus = userStatusObj;
+}
 
 } // namespace sample::openapi::models

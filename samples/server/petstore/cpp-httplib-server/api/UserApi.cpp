@@ -11,218 +11,179 @@ constexpr int HTTP_RESPONSE_CODE_PRIMITIVE_STRING = 200;
 
 
 namespace sample::openapi::api {
-
-
-//Parse request parameters: [ Post - User ]
-User::UserRequestForPost User::parseUserRequestForPost(const httplib::Request& req) {
-    User::UserRequestForPost params;
+User::UserPostRequest User::parseUserParams(const httplib::Request& req) {
+    User::UserPostRequest params;
     nlohmann::json json = nlohmann::json::parse(req.body);
     params.m_request = models::User::fromJson(json);
-
     return params;
 }
-
-
-//Parse request parameters: [ Post - CreateWithArray ]
-User::CreateWithArrayRequestForPost User::parseCreateWithArrayRequestForPost(const httplib::Request& req) {
-    User::CreateWithArrayRequestForPost params;
+User::CreateWithArrayPostRequest User::parseCreateWithArrayParams(const httplib::Request& req) {
+    User::CreateWithArrayPostRequest params;
     nlohmann::json json = nlohmann::json::parse(req.body);
     params.m_request = models::User::fromJson(json);
-
     return params;
 }
-
-
-//Parse request parameters: [ Post - CreateWithList ]
-User::CreateWithListRequestForPost User::parseCreateWithListRequestForPost(const httplib::Request& req) {
-    User::CreateWithListRequestForPost params;
+User::CreateWithListPostRequest User::parseCreateWithListParams(const httplib::Request& req) {
+    User::CreateWithListPostRequest params;
     nlohmann::json json = nlohmann::json::parse(req.body);
     params.m_request = models::User::fromJson(json);
-
     return params;
 }
-
-
-
-//Handle for response received: [ Get - Username ]
-void User::handleUsernameResponseForGet(const UsernameResponseForGet& result, httplib::Response& res) {
+void User::handleUsernameGetResponse(const UsernameGetResponse& result, httplib::Response& res) {
     std::visit([&](const auto& value) {
         using T = std::decay_t<decltype(value)>;
-        //Success types
+//Success types
         if constexpr (std::is_same_v<T, models::User>) {
             res.status = HTTP_RESPONSE_CODE_USER;
             res.set_content(value.toJson(value).dump(), "application/json");
         }
 
+// No Error types defined
     }, result);
 }
-
-
-//Parse request parameters: [ Get - Login ]
-User::LoginRequestForGet User::parseLoginRequestForGet(const httplib::Request& req) {
-    User::LoginRequestForGet params;
- //Query Params
-                                //String
-    params.m_username = req.path_params.at("username");
-    
-     //Query Params
-                                //String
-    params.m_password = req.path_params.at("password");
-    
-    
-
+User::LoginGetRequest User::parseLoginParams(const httplib::Request& req) {
+    User::LoginGetRequest params;
     return params;
 }
-
-//Handle for response received: [ Get - Login ]
-void User::handleLoginResponseForGet(const LoginResponseForGet& result, httplib::Response& res) {
+void User::handleLoginGetResponse(const LoginGetResponse& result, httplib::Response& res) {
     std::visit([&](const auto& value) {
         using T = std::decay_t<decltype(value)>;
-        //Success types
+//Success types
         if constexpr (std::is_same_v<T, std::string>) {
             res.status = HTTP_RESPONSE_CODE_PRIMITIVE_STRING;
-            nlohmann::json j = { {"Response", value} };
-            res.set_content(j.dump(4), "application/json");
+            res.set_content(value.toJson(value).dump(), "application/json");
         }
 
+// No Error types defined
     }, result);
 }
-
-
-
-//Parse request parameters: [ Put - Username ]
-User::UsernameRequestForPut User::parseUsernameRequestForPut(const httplib::Request& req) {
-    User::UsernameRequestForPut params;
+User::UsernamePutRequest User::parseUsernameParams(const httplib::Request& req) {
+    User::UsernamePutRequest params;
     nlohmann::json json = nlohmann::json::parse(req.body);
-    params.m_request = models::User::fromJson(json);//Path Params
-            //primitive
-                        params.m_username = req.path_params.at("username");
-    
-    
-
+    params.m_request = models::User::fromJson(json);
     return params;
 }
 
-//Register the server instance with all the endpoints available
 void User::registerRoutes(httplib::Server& svr) {
     svr.Post("/user", [this]([[maybe_unused]]const httplib::Request& req, httplib::Response& res) {
         try {
-            auto params = parseUserRequestForPost(req);
-            userHandlerForPost(params);
-        }catch (const nlohmann::json::parse_error& e) {
+            auto params = parseUserParams(req);
+            auto result = handlePostForUser(params);
+        } catch (const nlohmann::json::parse_error& e) {
             nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
             res.set_content(errorJson.dump(), "application/json");
-        }catch (const nlohmann::json::type_error& e) {
-            nlohmann::json errorJson = { {"message", "Invalid type in JSON: " + std::string(e.what())} };
+        }  catch (const nlohmann::json::invalid_iterator& e) {
+            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
+            res.set_content(errorJson.dump(), "application/json");
+        } catch (const nlohmann::json::type_error& e) {
+            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
+            res.set_content(errorJson.dump(), "application/json");
+        }  catch (const nlohmann::json::out_of_range& e) {
+            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
+            res.set_content(errorJson.dump(), "application/json");
+        } catch (const nlohmann::json::other_error& e) {
+            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
             res.set_content(errorJson.dump(), "application/json");
         }
     });
     svr.Post("/user/createWithArray", [this]([[maybe_unused]]const httplib::Request& req, httplib::Response& res) {
         try {
-            auto params = parseCreateWithArrayRequestForPost(req);
-            createWithArrayHandlerForPost(params);
-        }catch (const nlohmann::json::parse_error& e) {
+            auto params = parseCreateWithArrayParams(req);
+            auto result = handlePostForCreateWithArray(params);
+        } catch (const nlohmann::json::parse_error& e) {
             nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
             res.set_content(errorJson.dump(), "application/json");
-        }catch (const nlohmann::json::type_error& e) {
-            nlohmann::json errorJson = { {"message", "Invalid type in JSON: " + std::string(e.what())} };
+        }  catch (const nlohmann::json::invalid_iterator& e) {
+            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
+            res.set_content(errorJson.dump(), "application/json");
+        } catch (const nlohmann::json::type_error& e) {
+            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
+            res.set_content(errorJson.dump(), "application/json");
+        }  catch (const nlohmann::json::out_of_range& e) {
+            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
+            res.set_content(errorJson.dump(), "application/json");
+        } catch (const nlohmann::json::other_error& e) {
+            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
             res.set_content(errorJson.dump(), "application/json");
         }
     });
     svr.Post("/user/createWithList", [this]([[maybe_unused]]const httplib::Request& req, httplib::Response& res) {
         try {
-            auto params = parseCreateWithListRequestForPost(req);
-            createWithListHandlerForPost(params);
-        }catch (const nlohmann::json::parse_error& e) {
+            auto params = parseCreateWithListParams(req);
+            auto result = handlePostForCreateWithList(params);
+        } catch (const nlohmann::json::parse_error& e) {
             nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
             res.set_content(errorJson.dump(), "application/json");
-        }catch (const nlohmann::json::type_error& e) {
-            nlohmann::json errorJson = { {"message", "Invalid type in JSON: " + std::string(e.what())} };
+        }  catch (const nlohmann::json::invalid_iterator& e) {
+            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
+            res.set_content(errorJson.dump(), "application/json");
+        } catch (const nlohmann::json::type_error& e) {
+            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
+            res.set_content(errorJson.dump(), "application/json");
+        }  catch (const nlohmann::json::out_of_range& e) {
+            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
+            res.set_content(errorJson.dump(), "application/json");
+        } catch (const nlohmann::json::other_error& e) {
+            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
             res.set_content(errorJson.dump(), "application/json");
         }
     });
     svr.Delete("/user/{username}", [this]([[maybe_unused]]const httplib::Request& req, httplib::Response& res) {
         try {
-            usernameHandlerForDelete();
-        }catch (const std::exception& e) {
+            auto result = handleDeleteForUsername();
+        } catch (const std::exception& e) {
             nlohmann::json errorJson = { {"message", "Internal error: " + std::string(e.what())} };
             res.set_content(errorJson.dump(), "application/json");
         }
     });
     svr.Get("/user/{username}", [this]([[maybe_unused]]const httplib::Request& req, httplib::Response& res) {
         try {
-            auto result = usernameHandlerForGet();
-            handleUsernameResponseForGet(result, res);
-        }catch (const std::exception& e) {
+            auto result = handleGetForUsername();
+            handleUsernameGetResponse(result, res);
+        } catch (const std::exception& e) {
             nlohmann::json errorJson = { {"message", "Internal error: " + std::string(e.what())} };
             res.set_content(errorJson.dump(), "application/json");
         }
     });
     svr.Get("/user/login", [this]([[maybe_unused]]const httplib::Request& req, httplib::Response& res) {
         try {
-            auto params = parseLoginRequestForGet(req);
-            auto result = loginHandlerForGet(params);
-            handleLoginResponseForGet(result, res);
-        }catch (const std::exception& e) {
+            auto params = parseLoginParams(req);
+            auto result = handleGetForLogin(params);
+            handleLoginGetResponse(result, res);
+        } catch (const std::exception& e) {
             nlohmann::json errorJson = { {"message", "Internal error: " + std::string(e.what())} };
             res.set_content(errorJson.dump(), "application/json");
         }
     });
     svr.Get("/user/logout", [this]([[maybe_unused]]const httplib::Request& req, httplib::Response& res) {
         try {
-            logoutHandlerForGet();
-        }catch (const std::exception& e) {
+            auto result = handleGetForLogout();
+        } catch (const std::exception& e) {
             nlohmann::json errorJson = { {"message", "Internal error: " + std::string(e.what())} };
             res.set_content(errorJson.dump(), "application/json");
         }
     });
     svr.Put("/user/{username}", [this]([[maybe_unused]]const httplib::Request& req, httplib::Response& res) {
         try {
-            auto params = parseUsernameRequestForPut(req);
-            usernameHandlerForPut(params);
-        }catch (const nlohmann::json::parse_error& e) {
+            auto params = parseUsernameParams(req);
+            auto result = handlePutForUsername(params);
+        } catch (const nlohmann::json::parse_error& e) {
             nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
             res.set_content(errorJson.dump(), "application/json");
-        }catch (const nlohmann::json::type_error& e) {
-            nlohmann::json errorJson = { {"message", "Invalid type in JSON: " + std::string(e.what())} };
+        }  catch (const nlohmann::json::invalid_iterator& e) {
+            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
+            res.set_content(errorJson.dump(), "application/json");
+        } catch (const nlohmann::json::type_error& e) {
+            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
+            res.set_content(errorJson.dump(), "application/json");
+        }  catch (const nlohmann::json::out_of_range& e) {
+            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
+            res.set_content(errorJson.dump(), "application/json");
+        } catch (const nlohmann::json::other_error& e) {
+            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
             res.set_content(errorJson.dump(), "application/json");
         }
     });
-}
-//addImplStub is true
-void User::userHandlerForPost(const UserRequestForPost& params)
-{
-    
-}
-void User::createWithArrayHandlerForPost(const CreateWithArrayRequestForPost& params)
-{
-    
-}
-void User::createWithListHandlerForPost(const CreateWithListRequestForPost& params)
-{
-    
-}
-void User::usernameHandlerForDelete()
-{
-    
-}
-User::UsernameResponseForGet User::usernameHandlerForGet()
-{
-    models::User response;
-    return response;
-}
-User::LoginResponseForGet User::loginHandlerForGet(const LoginRequestForGet& params)
-{
-    std::string response;
-    return response;
-}
-void User::logoutHandlerForGet()
-{
-    
-}
-void User::usernameHandlerForPut(const UsernameRequestForPut& params)
-{
-    
 }
 
 } // namespace sample::openapi::api

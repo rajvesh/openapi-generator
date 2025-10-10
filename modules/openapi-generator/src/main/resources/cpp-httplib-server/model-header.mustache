@@ -3,52 +3,15 @@
 #pragma once
 {{#models}}
 {{#model}}
-
-#include <nlohmann/json.hpp>
-
-{{#vendorExtensions.filteredImports}}
+#include <nlohmann/json.hpp>{{#vendorExtensions.filteredImports}}
 {{{.}}}
 {{/vendorExtensions.filteredImports}}
-
-{{#vars}}
-{{#isPrimitiveType}}
-{{#dataType}}
-#include <{{#isNumeric}}cstdint{{/isNumeric}}{{#isString}}string{{/isString}}>
-{{/dataType}}
-{{/isPrimitiveType}}
-{{/vars}}
 
 namespace {{vendorExtensions.modelNamespace}} {
 
 class {{vendorExtensions.modelClassName}}
 {
 public:
-    {{#vars}}
-    {{#isEnum}}
-        // Enum declarations (property-scoped)
-    enum class {{enumName}} {
-                unknown{{#vendorExtensions.values}}
-                , {{{.}}}{{/vendorExtensions.values}}
-    };
-    static inline {{vendorExtensions.enumName}} {{vendorExtensions.enumFromStringHelper}}(const std::string& value) {
-        if (value.empty()) {
-            return {{vendorExtensions.enumName}}::unknown;
-        }
-        {{#vendorExtensions.values}}
-        if (value == "{{{.}}}") { return {{vendorExtensions.enumName}}::{{{.}}}; }
-        {{/vendorExtensions.values}}
-        return {{vendorExtensions.enumName}}::unknown;
-    }
-    static inline std::string {{vendorExtensions.enumToStringHelper}}(const {{vendorExtensions.enumName}}& e) {
-        switch (e) {
-            case {{vendorExtensions.enumName}}::unknown: return "unknown";{{#vendorExtensions.values}}
-            case {{vendorExtensions.enumName}}::{{{.}}}: return "{{{.}}}";{{/vendorExtensions.values}}
-            default: return "unknown";
-        }
-    }
-    {{/isEnum}}
-    {{/vars}}
-
     {{vendorExtensions.modelClassName}}();
     virtual ~{{vendorExtensions.modelClassName}}() = default;
 
@@ -58,24 +21,17 @@ public:
 
     // Getters and setters
     {{#vars}}
-    {{#vendorExtensions.isEnum}}
-    [[nodiscard]] {{vendorExtensions.enumName}} {{getter}}() const;
-    void {{setter}}(const {{vendorExtensions.enumName}}& {{nameInCamelCase}});
-    {{/vendorExtensions.isEnum}}
-    {{^vendorExtensions.isEnum}}
     [[nodiscard]] {{{datatypeWithEnum}}} {{getter}}() const;
     void {{setter}}(const {{{datatypeWithEnum}}}& {{nameInCamelCase}});
-    {{/vendorExtensions.isEnum}}
     {{/vars}}
-
+    // nlohmann::json NLOHMANN_DEFINE_TYPE_INTRUSIVE macro for serialization and deserialization
+    // In order to use this macro, member variables must match with the json values, else this MACRO will throw exceptions.
+    // Hence the member variables are named exactly as in the json schema.
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE({{vendorExtensions.modelClassName}},{{#vars}} {{nameInCamelCase}}{{^-last}},{{/-last}}{{/vars}})
 private:
+
     {{#vars}}
-    {{#isEnum}}
-    {{varName}} m_{{nameInCamelCase}};
-    {{/isEnum}}
-    {{^isEnum}}
-    {{{datatypeWithEnum}}} m_{{nameInCamelCase}};
-    {{/isEnum}}
+    {{{datatypeWithEnum}}} {{nameInCamelCase}};
     {{/vars}}
 };
 

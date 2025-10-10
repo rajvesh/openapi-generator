@@ -5,35 +5,16 @@
 */
 
 #pragma once
-
 #include <nlohmann/json.hpp>
-
-
 #include <cstdint>
-#include <cstdint>
+
+#include <string>
 
 namespace sample::openapi::models {
 
 class Order
 {
 public:
-        // Enum declarations (property-scoped)
-    enum class StatusEnum {
-                unknown
-    };
-    static inline  (const std::string& value) {
-        if (value.empty()) {
-            return ::unknown;
-        }
-        return ::unknown;
-    }
-    static inline std::string (const & e) {
-        switch (e) {
-            case ::unknown: return "unknown";
-            default: return "unknown";
-        }
-    }
-
     Order();
     virtual ~Order() = default;
 
@@ -48,20 +29,24 @@ public:
     void setPetId(const long& petId);
     [[nodiscard]] int getQuantity() const;
     void setQuantity(const int& quantity);
-    [[nodiscard]] Date getShipDate() const;
-    void setShipDate(const Date& shipDate);
-    [[nodiscard]] StatusEnum getStatus() const;
-    void setStatus(const StatusEnum& status);
+    [[nodiscard]] std::string getShipDate() const;
+    void setShipDate(const std::string& shipDate);
+    [[nodiscard]] Status getStatus() const;
+    void setStatus(const Status& status);
     [[nodiscard]] bool isComplete() const;
     void setComplete(const bool& complete);
-
+    // nlohmann::json NLOHMANN_DEFINE_TYPE_INTRUSIVE macro for serialization and deserialization
+    // In order to use this macro, member variables must match with the json values, else this MACRO will throw exceptions.
+    // Hence the member variables are named exactly as in the json schema.
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(Order, id, petId, quantity, shipDate, status, complete)
 private:
-    long m_id;
-    long m_petId;
-    int m_quantity;
-    Date m_shipDate;
-     m_status;
-    bool m_complete;
+
+    long id;
+    long petId;
+    int quantity;
+    std::string shipDate;
+    Status status;
+    bool complete;
 };
 
 } // namespace sample::openapi::models

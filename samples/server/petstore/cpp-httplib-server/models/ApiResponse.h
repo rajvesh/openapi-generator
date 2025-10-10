@@ -5,17 +5,16 @@
 */
 
 #pragma once
-
 #include <nlohmann/json.hpp>
+#include <cstdint>
 
+#include <string>
 
-
-namespace sample::models {
+namespace sample::openapi::models {
 
 class ApiResponse
 {
 public:
-
     ApiResponse();
     virtual ~ApiResponse() = default;
 
@@ -30,11 +29,15 @@ public:
     void setType(const std::string& type);
     [[nodiscard]] std::string getMessage() const;
     void setMessage(const std::string& message);
-
+    // nlohmann::json NLOHMANN_DEFINE_TYPE_INTRUSIVE macro for serialization and deserialization
+    // In order to use this macro, member variables must match with the json values, else this MACRO will throw exceptions.
+    // Hence the member variables are named exactly as in the json schema.
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(ApiResponse, code, type, message)
 private:
-    int m_code;
-    std::string m_type;
-    std::string m_message;
+
+    int code;
+    std::string type;
+    std::string message;
 };
 
-} // namespace sample::models
+} // namespace sample::openapi::models

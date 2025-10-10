@@ -5,18 +5,16 @@
 */
 
 #pragma once
-
 #include <nlohmann/json.hpp>
-
-
 #include <cstdint>
+
+#include <string>
 
 namespace sample::openapi::models {
 
 class User
 {
 public:
-
     User();
     virtual ~User() = default;
 
@@ -41,16 +39,20 @@ public:
     void setPhone(const std::string& phone);
     [[nodiscard]] int getUserStatus() const;
     void setUserStatus(const int& userStatus);
-
+    // nlohmann::json NLOHMANN_DEFINE_TYPE_INTRUSIVE macro for serialization and deserialization
+    // In order to use this macro, member variables must match with the json values, else this MACRO will throw exceptions.
+    // Hence the member variables are named exactly as in the json schema.
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(User, id, username, firstName, lastName, email, password, phone, userStatus)
 private:
-    long m_id;
-    std::string m_username;
-    std::string m_firstName;
-    std::string m_lastName;
-    std::string m_email;
-    std::string m_password;
-    std::string m_phone;
-    int m_userStatus;
+
+    long id;
+    std::string username;
+    std::string firstName;
+    std::string lastName;
+    std::string email;
+    std::string password;
+    std::string phone;
+    int userStatus;
 };
 
 } // namespace sample::openapi::models

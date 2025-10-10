@@ -9,56 +9,47 @@
 namespace sample::openapi::models {
 
 Tag::Tag()
-:m_id(
-    
-        
-            
-                
-                0
-)
-,m_name(
-    
-        
-            
-                ""
-                
-)
-{}
-
+: id(0)
+, name("")
+{
+}
+// =========================================
+// ===== Serialization/Deserialization =====
+// =========================================
 nlohmann::json Tag::toJson(const Tag& obj)
 {
-    nlohmann::json json;
-    // id
-    json["id"] = obj.getId();
-    // name
-    json["name"] = obj.getName();
+    nlohmann::json json = obj;
     return json;
 }
 
 Tag Tag::fromJson(const nlohmann::json& json)
 {
-    Tag obj;
-    //id 
-    if (json.contains("id"))
-    {
-        auto value = json.at("id" );
-    //Not model or Enum
-        obj.setId(value);
-    }
-    //name 
-    if (json.contains("name"))
-    {
-        auto value = json.at("name" );
-    //Not model or Enum
-        obj.setName(value);
-    }
+    Tag obj = json.get<Tag>();
     return obj;
 }
 
+// ===================
+// ===== Getters =====
+// ===================
+long Tag::getId() const
+{
+    return id;
+}
+std::string Tag::getName() const
+{
+    return name;
+}
 
-long ::getId() const { return m_id; }
-void ::setId(const long& id) { m_id = id; }
-std::string ::getName() const { return m_name; }
-void ::setName(const std::string& name) { m_name = name; }
+// ===================
+// ===== Setters =====
+// ===================
+void Tag::setId(const long& idObj)
+{
+    id = idObj;
+}
+void Tag::setName(const std::string& nameObj)
+{
+    name = nameObj;
+}
 
 } // namespace sample::openapi::models

@@ -9,56 +9,47 @@
 namespace sample::openapi::models {
 
 Category::Category()
-:m_id(
-    
-        
-            
-                
-                0
-)
-,m_name(
-    
-        
-            
-                ""
-                
-)
-{}
-
+: id(0)
+, name("")
+{
+}
+// =========================================
+// ===== Serialization/Deserialization =====
+// =========================================
 nlohmann::json Category::toJson(const Category& obj)
 {
-    nlohmann::json json;
-    // id
-    json["id"] = obj.getId();
-    // name
-    json["name"] = obj.getName();
+    nlohmann::json json = obj;
     return json;
 }
 
 Category Category::fromJson(const nlohmann::json& json)
 {
-    Category obj;
-    //id 
-    if (json.contains("id"))
-    {
-        auto value = json.at("id" );
-    //Not model or Enum
-        obj.setId(value);
-    }
-    //name 
-    if (json.contains("name"))
-    {
-        auto value = json.at("name" );
-    //Not model or Enum
-        obj.setName(value);
-    }
+    Category obj = json.get<Category>();
     return obj;
 }
 
+// ===================
+// ===== Getters =====
+// ===================
+long Category::getId() const
+{
+    return id;
+}
+std::string Category::getName() const
+{
+    return name;
+}
 
-long ::getId() const { return m_id; }
-void ::setId(const long& id) { m_id = id; }
-std::string ::getName() const { return m_name; }
-void ::setName(const std::string& name) { m_name = name; }
+// ===================
+// ===== Setters =====
+// ===================
+void Category::setId(const long& idObj)
+{
+    id = idObj;
+}
+void Category::setName(const std::string& nameObj)
+{
+    name = nameObj;
+}
 
 } // namespace sample::openapi::models
