@@ -8,6 +8,21 @@
 {{/vendorExtensions.filteredImports}}
 
 namespace {{vendorExtensions.modelNamespace}} {
+{{#vars}}
+{{#vendorExtensions.isEnum}}
+
+// Enum for {{vendorExtensions.enumName}}
+enum class {{vendorExtensions.enumType}} {
+    {{#vendorExtensions.values}}
+    {{.}}{{^-last}},{{/-last}}
+    {{/vendorExtensions.values}}
+};
+
+// Helper functions for enum conversion
+static {{vendorExtensions.enumType}} {{vendorExtensions.enumFromStringHelper}}(const std::string& value);
+static std::string {{vendorExtensions.enumToStringHelper}}({{vendorExtensions.enumType}} value);
+{{/vendorExtensions.isEnum}}
+{{/vars}}
 
 class {{vendorExtensions.modelClassName}}
 {

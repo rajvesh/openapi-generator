@@ -18,6 +18,30 @@ namespace {{apiNamespace}} {
     nlohmann::json json = nlohmann::json::parse(req.body);
     params.m_request = {{requestModelNamespace}}::{{requestModel}}::fromJson(json);
     {{/requestModel}}
+    {{#pathParams}}
+        {{#vendorExtensions.isString}}
+    params.m_{{paramName}} = req.path_params.at("{{baseName}}");
+        {{/vendorExtensions.isString}}
+        {{#vendorExtensions.isInt}}
+    params.m_{{paramName}} = std::stoi(req.path_params.at("{{baseName}}"));
+        {{/vendorExtensions.isInt}}
+        {{#vendorExtensions.isLong}}
+    params.m_{{paramName}} = std::stoll(req.path_params.at("{{baseName}}"));
+        {{/vendorExtensions.isLong}}
+        {{#vendorExtensions.isBool}}
+    params.m_{{paramName}} = (req.path_params.at("{{baseName}}") == "true");
+        {{/vendorExtensions.isBool}}
+        {{#vendorExtensions.isDouble}}
+    params.m_{{paramName}} = std::stod(req.path_params.at("{{baseName}}"));
+        {{/vendorExtensions.isDouble}}
+        {{#vendorExtensions.isFloat}}
+    params.m_{{paramName}} = std::stof(req.path_params.at("{{baseName}}"));
+        {{/vendorExtensions.isFloat}}
+        {{#vendorExtensions.isEnum}}
+    // Parse enum from path parameter
+    params.m_{{paramName}} = {{vendorExtensions.enumFromStringHelper}}(req.path_params.at("{{baseName}}"));
+        {{/vendorExtensions.isEnum}}
+    {{/pathParams}}
     {{#queryParams}}
         {{#vendorExtensions.isString}}
     params.m_{{paramName}} = req.get_param_value("{{baseName}}");
@@ -34,6 +58,13 @@ namespace {{apiNamespace}} {
         {{#vendorExtensions.isDouble}}
     params.m_{{paramName}} = std::stod(req.get_param_value("{{baseName}}"));
         {{/vendorExtensions.isDouble}}
+        {{#vendorExtensions.isFloat}}
+    params.m_{{paramName}} = std::stof(req.get_param_value("{{baseName}}"));
+        {{/vendorExtensions.isFloat}}
+        {{#vendorExtensions.isEnum}}
+    // Parse enum from query parameter
+    params.m_{{paramName}} = {{vendorExtensions.enumFromStringHelper}}(req.get_param_value("{{baseName}}"));
+        {{/vendorExtensions.isEnum}}
         {{#vendorExtensions.isArray}}
         size_t count = req.get_param_value_count("{{baseName}}");
         for (size_t i = 0; i < count; ++i)
@@ -59,6 +90,13 @@ namespace {{apiNamespace}} {
         {{#vendorExtensions.isDouble}}
     params.m_{{paramName}} = std::stod(req.get_header_value("{{baseName}}"));
     {{/vendorExtensions.isDouble}}
+        {{#vendorExtensions.isFloat}}
+    params.m_{{paramName}} = std::stof(req.get_header_value("{{baseName}}"));
+    {{/vendorExtensions.isFloat}}
+        {{#vendorExtensions.isEnum}}
+    // Parse enum from header parameter
+    params.m_{{paramName}} = {{vendorExtensions.enumFromStringHelper}}(req.get_header_value("{{baseName}}"));
+        {{/vendorExtensions.isEnum}}
     {{#vendorExtensions.isArray}}
     size_t count = req.get_param_value_count("{{baseName}}");
     for (size_t i = 0; i < count; ++i)
@@ -101,9 +139,12 @@ void {{apiClassnameInPascalCase}}::registerRoutes(httplib::Server& svr) {
             {{#hasAnyRequestSchema}}
             auto params = parse{{operationIdPascalCase}}Params(req);
             {{/hasAnyRequestSchema}}
-            auto result = {{handlerFunctionName}}({{#hasAnyRequestSchema}}params{{/hasAnyRequestSchema}});
+            {{#hasAnyResponseSchema}}auto result = {{/hasAnyResponseSchema}}{{handlerFunctionName}}({{#hasAnyRequestSchema}}params{{/hasAnyRequestSchema}});
             {{#hasAnyResponseSchema}}
             handle{{responseType}}(result, res);
+            {{/hasAnyResponseSchema}}{{^hasAnyResponseSchema}}
+            // Void return type - set success status
+            res.status = 200;
             {{/hasAnyResponseSchema}}
         } {{#requestModel}}catch (const nlohmann::json::parse_error& e) {
             nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
@@ -134,6 +175,15 @@ void {{apiClassnameInPascalCase}}::registerRoutes(httplib::Server& svr) {
     {{/vendorExtensions}}
     {{/operation}}
     {{/operations}}
+}
+
+// Utility method implementations
+std::string {{apiClassnameInPascalCase}}::getServerUrl(const std::string& host, int port) {
+    return "http://" + host + ":" + std::to_string(port);
+}
+
+int {{apiClassnameInPascalCase}}::getPort(const httplib::Server& svr) {
+    return svr.port();
 }
 
 } // namespace {{apiNamespace}}

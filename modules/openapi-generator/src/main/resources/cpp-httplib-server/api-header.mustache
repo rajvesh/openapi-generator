@@ -15,6 +15,10 @@ public:
     {{apiClassnameInPascalCase}}() = default;
     virtual ~{{apiClassnameInPascalCase}}() = default;
     void registerRoutes(httplib::Server& svr);
+    
+    // Utility methods to get server information
+    static std::string getServerUrl(const std::string& host = "localhost", int port = 8080);
+    static int getPort(const httplib::Server& svr);
 {{#operations}}
 {{#operation}}
 {{#vendorExtensions}}
@@ -31,6 +35,7 @@ public:
     struct {{requestType}}
     {
         {{#requestModel}}std::optional<{{requestModelNamespace}}::{{requestModel}}> m_request;{{/requestModel}}{{^requestModel}}// No Schema Types defined{{/requestModel}}
+        {{#pathParams}}{{{dataType}}} m_{{paramName}};{{/pathParams}}{{^pathParams}}// Path Params not available{{/pathParams}}
         {{#queryParams}}{{{dataType}}} m_{{paramName}};{{/queryParams}}{{^queryParams}}// Query Params not available{{/queryParams}}
         {{#headerParams}}{{{dataType}}} m_{{paramName}};{{/headerParams}}{{^headerParams}}// Header Params not available{{/headerParams}}
     };
@@ -52,10 +57,10 @@ public:
     /**
     * @brief Response type for {{handlerFunctionName}}.
     */
-    using {{responseType}} = std::variant<
-                                 {{#successType}}{{successType}}{{/successType}}{{^errorTypes}}>;{{/errorTypes}}
-{{#errorTypes}}                               , {{{.}}}{{#-last}}>;{{/-last}}
-{{/errorTypes}}
+    using {{responseType}} = std::variant<{{#successType}}
+                                 {{successType}}{{#errorTypes}},{{/errorTypes}}{{/successType}}{{^successType}}{{#errorTypes}}
+                                 {{{.}}}{{^-last}},{{/-last}}{{/errorTypes}}{{/successType}}{{#errorTypes}}{{#successType}}
+                                 {{{.}}}{{^-last}},{{/-last}}{{/successType}}{{/errorTypes}}>;
 
 {{/hasAnyResponseSchema}}
 {{/vendorExtensions}}

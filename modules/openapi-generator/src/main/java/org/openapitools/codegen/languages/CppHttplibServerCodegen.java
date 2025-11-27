@@ -317,7 +317,7 @@ public class CppHttplibServerCodegen extends AbstractCppCodegen {
             // Add type flags for query and header params for template type conversion
             if (op.queryParams != null) {
                 for (CodegenParameter qp : op.queryParams) {
-//                    setCppTypeFlags(qp);
+                    setCppTypeFlags(qp, modelClassName, hasPrimitiveParams);
                     if (!hasPrimitiveParams && Boolean.TRUE.equals(qp.vendorExtensions.get("isPrimitive"))) {
                         hasPrimitiveParams = true;
                     }
@@ -325,8 +325,16 @@ public class CppHttplibServerCodegen extends AbstractCppCodegen {
             }
             if (op.headerParams != null) {
                 for (CodegenParameter hp : op.headerParams) {
-//                    setCppTypeFlags(hp);
+                    setCppTypeFlags(hp, modelClassName, hasPrimitiveParams);
                     if (!hasPrimitiveParams && Boolean.TRUE.equals(hp.vendorExtensions.get("isPrimitive"))) {
+                        hasPrimitiveParams = true;
+                    }
+                }
+            }
+            if (op.pathParams != null) {
+                for (CodegenParameter pp : op.pathParams) {
+                    setCppTypeFlags(pp, modelClassName, hasPrimitiveParams);
+                    if (!hasPrimitiveParams && Boolean.TRUE.equals(pp.vendorExtensions.get("isPrimitive"))) {
                         hasPrimitiveParams = true;
                     }
                 }
@@ -1368,11 +1376,18 @@ public class CppHttplibServerCodegen extends AbstractCppCodegen {
         parameter.vendorExtensions.put("isOptional", !parameter.required);
 
         // Handle nullable parameters for C++
-        if (!parameter.required) {
-            // For non-required parameters, we can make them optional in C++
-            if (!parameter.dataType.startsWith("std::optional<") && !parameter.isContainer) {
-                parameter.vendorExtensions.put("optionalType", "std::optional<" + parameter.dataType + ">");
+        if (!parameter.required || parameter.isNullable) {
+            // For non-required or nullable parameters, wrap in std::optional
+            if (!parameter.dataType.startsWith("std::optional<")) {
+                parameter.vendorExtensions.put("isNullable", true);
+                parameter.vendorExtensions.put("innerType", parameter.dataType);
+                if (!parameter.isContainer) {
+                    parameter.dataType = "std::optional<" + parameter.dataType + ">";
+                    parameter.vendorExtensions.put("optionalType", parameter.dataType);
+                }
             }
+        } else {
+            parameter.vendorExtensions.put("isNullable", false);
         }
     }
 
@@ -1397,6 +1412,7 @@ public class CppHttplibServerCodegen extends AbstractCppCodegen {
                 param.vendorExtensions.put("enumName", helperName);
                 param.vendorExtensions.put("enumFromStringHelper", helperName + ENUM_FROM_STRING );
                 param.vendorExtensions.put("enumToStringHelper", helperName + ENUM_TO_STRING );
+                param.vendorExtensions.put("enumValues", param._enum);
                 // Use logical && (not bitwise &) to avoid unintended truth table behavior
                 if (modelBaseName != null && !modelBaseName.isEmpty()) {
                     param.vendorExtensions.put("enumModelClass", modelBaseName);
@@ -1497,7 +1513,7 @@ public class CppHttplibServerCodegen extends AbstractCppCodegen {
         // Normalize some aliases
         if ("string".equals(type)) type = "std::string";
         if ("integer".equals(type)) type = "int";
-        if ("number".equals(type)) type = "double"; // treat generic number as double
+        if ("number".equals(type)) type = "double"; // treat generic number as double (standard for JSON)
 
         boolean isLong = type.equals("long");
         boolean isFloat = type.equals("float");

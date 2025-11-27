@@ -5,6 +5,27 @@
 #include "{{vendorExtensions.modelClassName}}.h"
 
 namespace {{vendorExtensions.modelNamespace}} {
+{{#vars}}
+{{#vendorExtensions.isEnum}}
+
+// Enum helper implementations for {{vendorExtensions.enumName}}
+{{vendorExtensions.enumType}} {{vendorExtensions.enumFromStringHelper}}(const std::string& value) {
+    {{#vendorExtensions.values}}
+    if (value == "{{.}}") return {{../vendorExtensions.enumType}}::{{.}};
+    {{/vendorExtensions.values}}
+    throw std::invalid_argument("Invalid enum value: " + value);
+}
+
+std::string {{vendorExtensions.enumToStringHelper}}({{vendorExtensions.enumType}} value) {
+    switch (value) {
+        {{#vendorExtensions.values}}
+        case {{../vendorExtensions.enumType}}::{{.}}: return "{{.}}";
+        {{/vendorExtensions.values}}
+        default: throw std::invalid_argument("Invalid enum value");
+    }
+}
+{{/vendorExtensions.isEnum}}
+{{/vars}}
 
 {{vendorExtensions.modelClassName}}::{{vendorExtensions.modelClassName}}()
 {{#vars}}
