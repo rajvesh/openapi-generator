@@ -2,6 +2,7 @@ package org.openapitools.api;
 
 import org.openapitools.api.*;
 import org.openapitools.model.*;
+
 import org.jboss.resteasy.plugins.providers.multipart.MultipartFormDataInput;
 
 
@@ -37,4 +38,6 @@ public interface PetApiService {
       throws NotFoundException;
       Response uploadFile(MultipartFormDataInput input,Long petId,SecurityContext securityContext)
       throws NotFoundException;
+
+
 }

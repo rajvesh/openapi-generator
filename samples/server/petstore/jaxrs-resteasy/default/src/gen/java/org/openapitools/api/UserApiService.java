@@ -4,6 +4,7 @@ import org.openapitools.api.*;
 import org.openapitools.model.*;
 
 
+
 import java.util.Date;
 import org.openapitools.model.User;
 
@@ -35,4 +36,6 @@ public interface UserApiService {
       throws NotFoundException;
       Response updateUser(String username,User body,SecurityContext securityContext)
       throws NotFoundException;
+
+
 }

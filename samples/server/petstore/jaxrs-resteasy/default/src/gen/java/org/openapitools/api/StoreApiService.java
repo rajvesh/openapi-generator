@@ -4,6 +4,7 @@ import org.openapitools.api.*;
 import org.openapitools.model.*;
 
 
+
 import java.util.Map;
 import org.openapitools.model.Order;
 
@@ -27,4 +28,6 @@ public interface StoreApiService {
       throws NotFoundException;
       Response placeOrder(Order body,SecurityContext securityContext)
       throws NotFoundException;
+
+
 }
