@@ -14,11 +14,34 @@
 
 #include <string>
 
-namespace sample::openapi::models {
+namespace models {
+
 
 class Pet
 {
 public:
+    enum class StatusEnum {
+        available,
+        pending,
+        sold
+    };
+
+    static std::string EnumToString(StatusEnum value) {
+        switch (value) {
+            case PetStatusEnum::available: return "available";
+            case PetStatusEnum::pending: return "pending";
+            case PetStatusEnum::sold: return "sold";
+            default: return {};
+        }
+    }
+
+    static StatusEnum EnumFromString(const std::string& str) {
+        if (str == "available") return PetStatusEnum::available;
+        if (str == "pending") return PetStatusEnum::pending;
+        if (str == "sold") return PetStatusEnum::sold;
+        throw std::invalid_argument("Invalid enum value");
+    }
+
     Pet();
     virtual ~Pet() = default;
 
@@ -29,28 +52,31 @@ public:
     // Getters and setters
     [[nodiscard]] long getId() const;
     void setId(const long& id);
-    [[nodiscard]] Category getCategory() const;
-    void setCategory(const Category& category);
     [[nodiscard]] std::string getName() const;
     void setName(const std::string& name);
     [[nodiscard]] std::vector<std::string> getPhotoUrls() const;
     void setPhotoUrls(const std::vector<std::string>& photoUrls);
+    [[nodiscard]] PetStatusEnum getStatus() const;
+    void setStatus(const PetStatusEnum& status);
+    [[nodiscard]] Category getCategory() const;
+    void setCategory(const Category& category);
     [[nodiscard]] std::vector<Tag> getTags() const;
     void setTags(const std::vector<Tag>& tags);
-    [[nodiscard]] Status getStatus() const;
-    void setStatus(const Status& status);
+
     // nlohmann::json NLOHMANN_DEFINE_TYPE_INTRUSIVE macro for serialization and deserialization
     // In order to use this macro, member variables must match with the json values, else this MACRO will throw exceptions.
     // Hence the member variables are named exactly as in the json schema.
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(Pet, id, category, name, photoUrls, tags, status)
-private:
+    // NOTE: If you encounter issues with std::variant (anyOf/oneOf), provide custom to_json/from_json for the union type.
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(Pet, id, name, photoUrls, status, category, tags)
 
+private:
     long id;
-    Category category;
     std::string name;
     std::vector<std::string> photoUrls;
+    PetStatusEnum status;
+    Category category;
     std::vector<Tag> tags;
-    Status status;
 };
 
-} // namespace sample::openapi::models
+} // namespace models
+

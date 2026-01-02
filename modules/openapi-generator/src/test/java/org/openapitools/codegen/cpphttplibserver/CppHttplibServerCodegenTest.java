@@ -93,4 +93,40 @@ public class CppHttplibServerCodegenTest {
         Assert.assertEquals(codegen.toApiFilename("User"), "UserApi");
         Assert.assertEquals(codegen.toApiFilename("Default"), "DefaultApi");
     }
+
+    @Test
+    public void testTypeDeclarationWithAnyOf() {
+        io.swagger.v3.oas.models.media.ComposedSchema anyOfSchema = new io.swagger.v3.oas.models.media.ComposedSchema();
+        anyOfSchema.addAnyOfItem(new io.swagger.v3.oas.models.media.StringSchema());
+        anyOfSchema.addAnyOfItem(new io.swagger.v3.oas.models.media.IntegerSchema());
+        
+        String result = codegen.getTypeDeclaration(anyOfSchema);
+        Assert.assertTrue(result.contains("std::variant"), "anyOf should generate std::variant");
+    }
+
+    @Test
+    public void testTypeDeclarationWithOneOf() {
+        io.swagger.v3.oas.models.media.ComposedSchema oneOfSchema = new io.swagger.v3.oas.models.media.ComposedSchema();
+        oneOfSchema.addOneOfItem(new io.swagger.v3.oas.models.media.StringSchema());
+        oneOfSchema.addOneOfItem(new io.swagger.v3.oas.models.media.NumberSchema());
+        
+        String result = codegen.getTypeDeclaration(oneOfSchema);
+        Assert.assertTrue(result.contains("std::variant"), "oneOf should generate std::variant");
+    }
+
+    @Test
+    public void testModelNamespaceHandling() {
+        codegen.additionalProperties().put("modelNamespace", "myapp::models");
+        codegen.processOpts();
+        
+        Assert.assertEquals(codegen.additionalProperties().get("modelNamespace"), "myapp::models");
+    }
+
+    @Test
+    public void testApiNamespaceHandling() {
+        codegen.additionalProperties().put("apiNamespace", "myapp::api");
+        codegen.processOpts();
+        
+        Assert.assertEquals(codegen.additionalProperties().get("apiNamespace"), "myapp::api");
+    }
 }

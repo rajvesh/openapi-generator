@@ -3,15 +3,54 @@
 #pragma once
 {{#models}}
 {{#model}}
-#include <nlohmann/json.hpp>{{#vendorExtensions.filteredImports}}
+#include <nlohmann/json.hpp>{{#vendorExtensions.hasVariant}}
+#include <variant>{{/vendorExtensions.hasVariant}}{{#vendorExtensions.filteredImports}}
 {{{.}}}
 {{/vendorExtensions.filteredImports}}
 
 namespace {{vendorExtensions.modelNamespace}} {
 
-class {{vendorExtensions.modelClassName}}
+{{#vars}}
+{{#isUnionType}}
+// Union type for anyOf/oneOf
+using {{unionTypeName}} = std::variant<{{#unionTypes}}{{.}}{{^-last}}, {{/-last}}{{/unionTypes}}>;
+{{/isUnionType}}
+{{/vars}}
+
+class {{vendorExtensions.modelClassName}}{{#parent}} : public {{parent}}{{/parent}}
 {
 public:
+    {{#vars}}
+    {{#isEnum}}
+    {{#-first}}
+    // ===================
+    // ===== Enums =======
+    // ===================
+    {{/-first}}
+    enum class {{enumName}} {
+        {{#allowableValues.values}}
+        {{.}}{{^-last}},{{/-last}}
+        {{/allowableValues.values}}
+    };
+
+    static std::string EnumToString({{enumName}} value) {
+        switch (value) {
+            {{#vendorExtensions.enumCases}}
+            case {{enumName}}::{{name}}: return "{{value}}";
+            {{/vendorExtensions.enumCases}}
+            default: return {};
+        }
+    }
+
+    static {{enumName}} EnumFromString(const std::string& str) {
+        {{#vendorExtensions.enumCases}}
+        if (str == "{{value}}") return {{enumName}}::{{name}};
+        {{/vendorExtensions.enumCases}}
+        throw std::invalid_argument("Invalid enum value");
+    }
+    {{/isEnum}}
+    {{/vars}}
+
     {{vendorExtensions.modelClassName}}();
     virtual ~{{vendorExtensions.modelClassName}}() = default;
 
@@ -21,20 +60,28 @@ public:
 
     // Getters and setters
     {{#vars}}
-    [[nodiscard]] {{{datatypeWithEnum}}} {{getter}}() const;
-    void {{setter}}(const {{{datatypeWithEnum}}}& {{nameInCamelCase}});
+    [[nodiscard]] {{#isUnionType}}{{unionTypeName}}{{/isUnionType}}{{^isUnionType}}{{{datatypeWithEnum}}}{{/isUnionType}} {{getter}}() const;
+    void {{setter}}(const {{#isUnionType}}{{unionTypeName}}{{/isUnionType}}{{^isUnionType}}{{{datatypeWithEnum}}}{{/isUnionType}}& {{nameInCamelCase}});
     {{/vars}}
+
     // nlohmann::json NLOHMANN_DEFINE_TYPE_INTRUSIVE macro for serialization and deserialization
     // In order to use this macro, member variables must match with the json values, else this MACRO will throw exceptions.
     // Hence the member variables are named exactly as in the json schema.
+    // NOTE: If you encounter issues with std::variant (anyOf/oneOf), provide custom to_json/from_json for the union type.
     NLOHMANN_DEFINE_TYPE_INTRUSIVE({{vendorExtensions.modelClassName}},{{#vars}} {{nameInCamelCase}}{{^-last}},{{/-last}}{{/vars}})
-private:
 
+private:
     {{#vars}}
+    {{#isUnionType}}
+    {{unionTypeName}} {{nameInCamelCase}};
+    {{/isUnionType}}
+    {{^isUnionType}}
     {{{datatypeWithEnum}}} {{nameInCamelCase}};
+    {{/isUnionType}}
     {{/vars}}
 };
 
 } // namespace {{vendorExtensions.modelNamespace}}
+
 {{/model}}
 {{/models}}

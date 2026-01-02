@@ -6,82 +6,96 @@
 
 #pragma once
 
-#include "models/Order.h"
-
 #include <httplib.h>
 #include <variant>
 #include <optional>
-namespace sample::openapi::api {
+
+#include "models/Order.h"
+
+namespace api {
 class Store {
 public:
     Store() = default;
     virtual ~Store() = default;
+    /**
+     * @brief Register all routes for this API
+     * @param svr The httplib::Server instance to register routes on
+     */
     void registerRoutes(httplib::Server& svr);
-
+    // =========================
+    // ===== Request types =====
+    // =========================
 
     /**
-    * @brief Request type for handlePostForOrder.
+    * @brief Request type for handleDeleteForStoreOrderorderId.
     */
-    struct OrderPostRequest
+    struct StoreOrderorderIdDeleteRequest
     {
-        std::optional<models::Order> m_request;
-        // Query Params not available
-        // Header Params not available
+
+        long m_orderId; //PathParams (always required)
+    };
+
+    /**
+    * @brief Request type for handleGetForStoreOrderorderId.
+    */
+    struct StoreOrderorderIdGetRequest
+    {
+
+        long m_orderId; //PathParams (always required)
+    };
+
+    /**
+    * @brief Request type for handlePostForStoreOrder.
+    */
+    struct StoreOrderPostRequest
+    {
+        std::optional<models::Order> m_request; //Request Body
     };
 
 
+    /**
+    * @brief Response type for handleGetForStoreOrderorderId.
+    */
+    using StoreOrderorderIdGetResponse = std::variant<
+                                        models::Order>;
 
     /**
-    * @brief Response type for handleGetForInventory.
+    * @brief Response type for handlePostForStoreOrder.
     */
-    using InventoryGetResponse = std::variant<
-                                 int>;
-
-
-    /**
-    * @brief Response type for handleGetForOrderOrderId.
-    */
-    using OrderOrderIdGetResponse = std::variant<
-                                 models::Order>;
-
-
-    /**
-    * @brief Response type for handlePostForOrder.
-    */
-    using OrderPostResponse = std::variant<
-                                 models::Order>;
-
+    using StoreOrderPostResponse = std::variant<
+                                        models::Order>;
     // ============================================================
     // ===== Pure virtual functions to be handled by the user =====
     // ============================================================
     /**
+     * StoreOrderorderIdDeleteRequest - struct containing all the query parameters and headers and schemas as available.
      */
-    virtual void handleDeleteForOrderOrderId()=0;
+    virtual void handleDeleteForStoreOrderorderId(const StoreOrderorderIdDeleteRequest& params)=0;
 
     /**
-     * @return InventoryGetResponse The response type returned by the handler.
+     * StoreOrderorderIdGetRequest - struct containing all the query parameters and headers and schemas as available.
+     * @return StoreOrderorderIdGetResponse The response type returned by the handler.
      */
-    virtual InventoryGetResponse handleGetForInventory()=0;
+    virtual StoreOrderorderIdGetResponse handleGetForStoreOrderorderId(const StoreOrderorderIdGetRequest& params)=0;
 
     /**
-     * @return OrderOrderIdGetResponse The response type returned by the handler.
+     * StoreOrderPostRequest - struct containing all the query parameters and headers and schemas as available.
+     * @return StoreOrderPostResponse The response type returned by the handler.
      */
-    virtual OrderOrderIdGetResponse handleGetForOrderOrderId()=0;
-
-    /**
-     * OrderPostRequest - struct containing all the query parameters and headers and schemas as available.
-     * @return OrderPostResponse The response type returned by the handler.
-     */
-    virtual OrderPostResponse handlePostForOrder(const OrderPostRequest& params)=0;
+    virtual StoreOrderPostResponse handlePostForStoreOrder(const StoreOrderPostRequest& params)=0;
 
 private:
     // ========================================
     // ===== Helper function declarations =====
     // ========================================
-    static void handleInventoryGetResponse(const InventoryGetResponse& result, httplib::Response& res);
-    static void handleOrderOrderIdGetResponse(const OrderOrderIdGetResponse& result, httplib::Response& res);
-    static OrderPostRequest parseOrderParams(const httplib::Request& req);
-    static void handleOrderPostResponse(const OrderPostResponse& result, httplib::Response& res);
+    static bool parseStoreOrderorderIdParams(const httplib::Request& req, StoreOrderorderIdDeleteRequest& params, std::vector<std::string>& paramErrors);
+    void handleStoreOrderorderIdRequest(const httplib::Request& req, httplib::Response& res);
+    static bool parseStoreOrderorderIdParams(const httplib::Request& req, StoreOrderorderIdGetRequest& params, std::vector<std::string>& paramErrors);
+    void handleStoreOrderorderIdRequest(const httplib::Request& req, httplib::Response& res);
+    static void handleStoreOrderorderIdGetResponse(const StoreOrderorderIdGetResponse& result, httplib::Response& res);
+    static bool parseStoreOrderParams(const httplib::Request& req, StoreOrderPostRequest& params, std::vector<std::string>& paramErrors);
+    void handleStoreOrderRequest(const httplib::Request& req, httplib::Response& res);
+    static void handleStoreOrderPostResponse(const StoreOrderPostResponse& result, httplib::Response& res);
 };
 
-} // namespace sample::openapi::api
+} // namespace api

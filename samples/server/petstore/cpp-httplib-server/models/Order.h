@@ -10,11 +10,34 @@
 
 #include <string>
 
-namespace sample::openapi::models {
+namespace models {
+
 
 class Order
 {
 public:
+    enum class StatusEnum {
+        placed,
+        approved,
+        delivered
+    };
+
+    static std::string EnumToString(StatusEnum value) {
+        switch (value) {
+            case OrderStatusEnum::placed: return "placed";
+            case OrderStatusEnum::approved: return "approved";
+            case OrderStatusEnum::delivered: return "delivered";
+            default: return {};
+        }
+    }
+
+    static StatusEnum EnumFromString(const std::string& str) {
+        if (str == "placed") return OrderStatusEnum::placed;
+        if (str == "approved") return OrderStatusEnum::approved;
+        if (str == "delivered") return OrderStatusEnum::delivered;
+        throw std::invalid_argument("Invalid enum value");
+    }
+
     Order();
     virtual ~Order() = default;
 
@@ -31,22 +54,25 @@ public:
     void setQuantity(const int& quantity);
     [[nodiscard]] std::string getShipDate() const;
     void setShipDate(const std::string& shipDate);
-    [[nodiscard]] Status getStatus() const;
-    void setStatus(const Status& status);
+    [[nodiscard]] OrderStatusEnum getStatus() const;
+    void setStatus(const OrderStatusEnum& status);
     [[nodiscard]] bool isComplete() const;
     void setComplete(const bool& complete);
+
     // nlohmann::json NLOHMANN_DEFINE_TYPE_INTRUSIVE macro for serialization and deserialization
     // In order to use this macro, member variables must match with the json values, else this MACRO will throw exceptions.
     // Hence the member variables are named exactly as in the json schema.
+    // NOTE: If you encounter issues with std::variant (anyOf/oneOf), provide custom to_json/from_json for the union type.
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(Order, id, petId, quantity, shipDate, status, complete)
-private:
 
+private:
     long id;
     long petId;
     int quantity;
     std::string shipDate;
-    Status status;
+    OrderStatusEnum status;
     bool complete;
 };
 
-} // namespace sample::openapi::models
+} // namespace models
+

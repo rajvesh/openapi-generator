@@ -1,6 +1,6 @@
 generatorName: cpp-httplib-server
 outputDir: samples/server/petstore/cpp-httplib-server
-inputSpec: modules/openapi-generator/src/test/resources/3_0/cpp-httplib-server/petstore.yaml
+inputSpec: modules/openapi-generator/src/test/resources/3_0/cpp-httplib-server/petstore.json
 templateDir: modules/openapi-generator/src/main/resources/cpp-httplib-server
 additionalProperties:
   apiNamespace: "petstore::openapi::api"

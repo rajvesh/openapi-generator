@@ -1,135 +1,589 @@
 {{>License}}
 
-{{{apiHeaderFileName}}}
+#include "{{{apiHeaderFileName}}}"
+{{#hasAuthMethods}}
+#include "AuthenticationManager.h"
+{{/hasAuthMethods}}
+{{#operations}}{{#operation}}{{#vendorExtensions}}{{#hasAnyRequestSchema}}{{#hasArrayParams}}{{^-first}}#include <sstream>
+{{/-first}}{{/hasArrayParams}}{{/hasAnyRequestSchema}}{{/vendorExtensions}}{{/operation}}{{/operations}}
 
 {{#statusCodeConsts}}
 constexpr int {{constName}} = {{statusCode}};
 {{/statusCodeConsts}}
 
-
 namespace {{apiNamespace}} {
+
 {{#operations}}
 {{#operation}}
 {{#vendorExtensions}}
 {{#hasAnyRequestSchema}}
-{{apiClassnameInPascalCase}}::{{requestType}} {{apiClassnameInPascalCase}}::parse{{operationIdPascalCase}}Params(const httplib::Request& req) {
-    {{apiClassnameInPascalCase}}::{{requestType}} params;
-    {{#requestModel}}
-    nlohmann::json json = nlohmann::json::parse(req.body);
-    params.m_request = {{requestModelNamespace}}::{{requestModel}}::fromJson(json);
-    {{/requestModel}}
-    {{#queryParams}}
-        {{#vendorExtensions.isString}}
-    params.m_{{paramName}} = req.get_param_value("{{baseName}}");
-        {{/vendorExtensions.isString}}
-        {{#vendorExtensions.isInt}}
-    params.m_{{paramName}} = std::stoi(req.get_param_value("{{baseName}}"));
-        {{/vendorExtensions.isInt}}
-        {{#vendorExtensions.isLong}}
-    params.m_{{paramName}} = std::stoll(req.get_param_value("{{baseName}}"));
-        {{/vendorExtensions.isLong}}
-        {{#vendorExtensions.isBool}}
-    params.m_{{paramName}} = (req.get_param_value("{{baseName}}") == "true");
-        {{/vendorExtensions.isBool}}
-        {{#vendorExtensions.isDouble}}
-    params.m_{{paramName}} = std::stod(req.get_param_value("{{baseName}}"));
-        {{/vendorExtensions.isDouble}}
-        {{#vendorExtensions.isArray}}
-        size_t count = req.get_param_value_count("{{baseName}}");
-        for (size_t i = 0; i < count; ++i)
-        {
-            auto val = req.get_param_value("{{baseName}}", i);
-            params.m_{{paramName}}.emplace_back(val);
-        }
-        {{/vendorExtensions.isArray}}
-    {{/queryParams}}
-    {{#headerParams}}
-    {{#vendorExtensions.isString}}
-    params.m_{{paramName}} = req.get_header_value("{{baseName}}");
-        {{/vendorExtensions.isString}}
-        {{#vendorExtensions.isInt}}
-    params.m_{{paramName}} = std::stoi(req.get_header_value("{{baseName}}"));
-        {{/vendorExtensions.isInt}}
-        {{#vendorExtensions.isLong}}
-        params.m_{{paramName}} = std::stoll(req.get_header_value("{{baseName}}"));
-        {{/vendorExtensions.isLong}}
-        {{#vendorExtensions.isBool}}
-    params.m_{{paramName}} = (req.get_header_value("{{baseName}}") == "true");
-        {{/vendorExtensions.isBool}}
-        {{#vendorExtensions.isDouble}}
-    params.m_{{paramName}} = std::stod(req.get_header_value("{{baseName}}"));
-    {{/vendorExtensions.isDouble}}
-    {{#vendorExtensions.isArray}}
-    size_t count = req.get_param_value_count("{{baseName}}");
-    for (size_t i = 0; i < count; ++i)
+bool {{apiClassnameInPascalCase}}::parse{{operationIdPascalCase}}Params(const httplib::Request& req, {{apiClassnameInPascalCase}}::{{requestType}}& params, std::vector<std::string>& paramErrors)
+{
+    std::vector<std::string> errors;
+{{#requestModel}}
+    try
     {
-    auto val = req.get_param_value("{{baseName}}", i);
-    params.m_{{paramName}}.emplace_back(val);
+        nlohmann::json json = nlohmann::json::parse(req.body);
+        params.m_request = {{requestModelNamespace}}::{{requestModel}}::fromJson(json);
     }
-{{/vendorExtensions.isArray}}
-    {{/headerParams}}
-    return params;
+    catch (const std::exception& e)
+    {
+        errors.push_back("Invalid request body: " + std::string(e.what()));
+    }
+{{/requestModel}}
+{{#queryParams}}
+{{#-first}}
+
+{{/-first}}
+    // Query Parameters - {{baseName}}
+    if (req.has_param("{{baseName}}"))
+    {
+        {{#vendorExtensions.isObject}}try
+        {
+            {{#vendorExtensions.isDeepObject}}// deepObject: parse as JSON object from multiple keys
+            nlohmann::json obj;
+            for (const auto& [k, v] : req.params) {
+                if (k.find("{{baseName}}[") == 0) {
+                    std::string field = k.substr(std::string("{{baseName}}[").size(), k.size() - std::string("{{baseName}}[").size() - 1);
+                    obj[field] = v;
+                }
+            }
+            params.m_{{paramName}} = obj;{{/vendorExtensions.isDeepObject}}{{^vendorExtensions.isDeepObject}}// Parse JSON object from query
+            auto val = req.get_param_value("{{baseName}}", 0);
+            params.m_{{paramName}} = nlohmann::json::parse(val);{{/vendorExtensions.isDeepObject}}
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid query parameter '{{baseName}}': " + std::string(e.what()));
+        }{{/vendorExtensions.isObject}}{{#vendorExtensions.isArray}}try
+        {
+            {{#vendorExtensions.isSpaceDelimited}}// spaceDelimited: split by space
+            auto val = req.get_param_value("{{baseName}}", 0);
+            std::stringstream ss(val);
+            std::string item;
+            while (std::getline(ss, item, ' ')) {
+                std::string trimmed = trim(item);
+                if (!trimmed.empty()) {
+                    params.m_{{paramName}}.emplace_back(trimmed);
+                }
+            }{{/vendorExtensions.isSpaceDelimited}}{{#vendorExtensions.isPipeDelimited}}// pipeDelimited: split by |
+            auto val = req.get_param_value("{{baseName}}", 0);
+            std::stringstream ss(val);
+            std::string item;
+            while (std::getline(ss, item, '|')) {
+                std::string trimmed = trim(item);
+                if (!trimmed.empty()) {
+                    params.m_{{paramName}}.emplace_back(trimmed);
+                }
+            }{{/vendorExtensions.isPipeDelimited}}{{^vendorExtensions.isSpaceDelimited}}{{^vendorExtensions.isPipeDelimited}}// form/simple: multi-param or comma-separated
+            size_t count = req.get_param_value_count("{{baseName}}");
+            if (count > 1) {
+                for (size_t i = 0; i < count; ++i) {
+                    auto val = req.get_param_value("{{baseName}}", i);
+                    params.m_{{paramName}}.emplace_back(val);
+                }
+            } else if (count == 1) {
+                auto val = req.get_param_value("{{baseName}}", 0);
+                std::stringstream ss(val);
+                std::string item;
+                while (std::getline(ss, item, ',')) {
+                    std::string trimmed = trim(item);
+                    if (!trimmed.empty()) {
+                        params.m_{{paramName}}.emplace_back(trimmed);
+                    }
+                }
+            }{{/vendorExtensions.isPipeDelimited}}{{/vendorExtensions.isSpaceDelimited}}
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid query parameter '{{baseName}}': " + std::string(e.what()));
+        }{{/vendorExtensions.isArray}}{{#vendorExtensions.isEnum}}try
+        {
+            params.m_{{paramName}} = {{enumFromStringHelper}}(req.get_param_value("{{baseName}}"));
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid query parameter '{{baseName}}': " + std::string(e.what()));
+        }{{/vendorExtensions.isEnum}}{{#vendorExtensions.isString}}params.m_{{paramName}} = req.get_param_value("{{baseName}}"){{#vendorExtensions.isMatrix}}.substr(1){{/vendorExtensions.isMatrix}}{{#vendorExtensions.isLabel}}.substr(1){{/vendorExtensions.isLabel}};{{/vendorExtensions.isString}}{{#vendorExtensions.isInt}}try
+        {
+            params.m_{{paramName}} = std::stoi(req.get_param_value("{{baseName}}"));
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid query parameter '{{baseName}}': " + std::string(e.what()));
+        }{{/vendorExtensions.isInt}}{{#vendorExtensions.isLong}}try
+        {
+            params.m_{{paramName}} = std::stoll(req.get_param_value("{{baseName}}"));
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid query parameter '{{baseName}}': " + std::string(e.what()));
+        }{{/vendorExtensions.isLong}}{{#vendorExtensions.isBool}}try
+        {
+            params.m_{{paramName}} = (req.get_param_value("{{baseName}}") == "true");
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid query parameter '{{baseName}}': " + std::string(e.what()));
+        }{{/vendorExtensions.isBool}}{{#vendorExtensions.isDouble}}try
+        {
+            params.m_{{paramName}} = std::stod(req.get_param_value("{{baseName}}"));
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid query parameter '{{baseName}}': " + std::string(e.what()));
+        }{{/vendorExtensions.isDouble}}{{#vendorExtensions.isFloat}}try
+        {
+            params.m_{{paramName}} = std::stof(req.get_param_value("{{baseName}}"));
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid query parameter '{{baseName}}': " + std::string(e.what()));
+        }{{/vendorExtensions.isFloat}}{{^vendorExtensions.isObject}}{{^vendorExtensions.isArray}}{{^vendorExtensions.isEnum}}{{^vendorExtensions.isString}}{{^vendorExtensions.isInt}}{{^vendorExtensions.isLong}}{{^vendorExtensions.isBool}}{{^vendorExtensions.isDouble}}{{^vendorExtensions.isFloat}}// Fallback: direct assignment
+        params.m_{{paramName}} = req.get_param_value("{{baseName}}");{{/vendorExtensions.isFloat}}{{/vendorExtensions.isDouble}}{{/vendorExtensions.isBool}}{{/vendorExtensions.isLong}}{{/vendorExtensions.isInt}}{{/vendorExtensions.isString}}{{/vendorExtensions.isEnum}}{{/vendorExtensions.isArray}}{{/vendorExtensions.isObject}}
+    }{{^vendorExtensions.isRequired}}{{#vendorExtensions.hasDefaultValue}}
+    else
+    {
+        // Use default value for optional parameter
+        params.m_{{paramName}} = {{{vendorExtensions.defaultValue}}};
+    }{{/vendorExtensions.hasDefaultValue}}{{/vendorExtensions.isRequired}}
+{{/queryParams}}
+{{#headerParams}}
+{{#-first}}
+
+{{/-first}}
+    // Header Parameters - {{baseName}}
+    if (!req.get_header_value("{{baseName}}").empty())
+    {
+        {{#vendorExtensions.isObject}}try
+        {
+            // Parse JSON object from header
+            auto val = req.get_header_value("{{baseName}}");
+            params.m_{{paramName}} = nlohmann::json::parse(val);
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid header parameter '{{baseName}}': " + std::string(e.what()));
+        }{{/vendorExtensions.isObject}}{{#vendorExtensions.isArray}}try
+        {
+            // Header arrays may be comma-separated
+            auto val = req.get_header_value("{{baseName}}");
+            std::stringstream ss(val);
+            std::string item;
+            while (std::getline(ss, item, ',')) {
+                std::string trimmed = trim(item);
+                if (!trimmed.empty()) {
+                    params.m_{{paramName}}.emplace_back(trimmed);
+                }
+            }
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid header parameter '{{baseName}}': " + std::string(e.what()));
+        }{{/vendorExtensions.isArray}}{{#vendorExtensions.isEnum}}try
+        {
+            params.m_{{paramName}} = {{enumFromStringHelper}}(req.get_header_value("{{baseName}}"));
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid header parameter '{{baseName}}': " + std::string(e.what()));
+        }{{/vendorExtensions.isEnum}}{{#vendorExtensions.isString}}params.m_{{paramName}} = req.get_header_value("{{baseName}}");{{/vendorExtensions.isString}}{{#vendorExtensions.isInt}}try
+        {
+            params.m_{{paramName}} = std::stoi(req.get_header_value("{{baseName}}"));
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid header parameter '{{baseName}}': " + std::string(e.what()));
+        }{{/vendorExtensions.isInt}}{{#vendorExtensions.isLong}}try
+        {
+            params.m_{{paramName}} = std::stoll(req.get_header_value("{{baseName}}"));
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid header parameter '{{baseName}}': " + std::string(e.what()));
+        }{{/vendorExtensions.isLong}}{{#vendorExtensions.isBool}}try
+        {
+            params.m_{{paramName}} = (req.get_header_value("{{baseName}}") == "true");
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid header parameter '{{baseName}}': " + std::string(e.what()));
+        }{{/vendorExtensions.isBool}}{{#vendorExtensions.isDouble}}try
+        {
+            params.m_{{paramName}} = std::stod(req.get_header_value("{{baseName}}"));
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid header parameter '{{baseName}}': " + std::string(e.what()));
+        }{{/vendorExtensions.isDouble}}{{#vendorExtensions.isFloat}}try
+        {
+            params.m_{{paramName}} = std::stof(req.get_header_value("{{baseName}}"));
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid header parameter '{{baseName}}': " + std::string(e.what()));
+        }{{/vendorExtensions.isFloat}}{{^vendorExtensions.isObject}}{{^vendorExtensions.isArray}}{{^vendorExtensions.isEnum}}{{^vendorExtensions.isString}}{{^vendorExtensions.isInt}}{{^vendorExtensions.isLong}}{{^vendorExtensions.isBool}}{{^vendorExtensions.isDouble}}{{^vendorExtensions.isFloat}}// Fallback: direct assignment
+        params.m_{{paramName}} = req.get_header_value("{{baseName}}");{{/vendorExtensions.isFloat}}{{/vendorExtensions.isDouble}}{{/vendorExtensions.isBool}}{{/vendorExtensions.isLong}}{{/vendorExtensions.isInt}}{{/vendorExtensions.isString}}{{/vendorExtensions.isEnum}}{{/vendorExtensions.isArray}}{{/vendorExtensions.isObject}}
+    }{{^vendorExtensions.isRequired}}{{#vendorExtensions.hasDefaultValue}}
+    else
+    {
+        // Use default value for optional parameter
+        params.m_{{paramName}} = {{{vendorExtensions.defaultValue}}};
+    }{{/vendorExtensions.hasDefaultValue}}{{/vendorExtensions.isRequired}}
+{{/headerParams}}
+{{#pathParams}}
+{{#-first}}
+
+{{/-first}}
+    // Path Parameters - {{baseName}} (index: {{vendorExtensions.pathIndex}})
+    if (req.matches.size() <= {{vendorExtensions.pathIndex}})
+    {
+        errors.push_back("Missing path parameter '{{baseName}}'");
+    }
+    else
+    {
+        try
+        {
+            {{#vendorExtensions.isObject}}
+            // Parse JSON object from path param (rare)
+            auto val = req.matches[{{vendorExtensions.pathIndex}}];
+            params.m_{{paramName}} = nlohmann::json::parse(val);
+            {{/vendorExtensions.isObject}}
+            {{#vendorExtensions.isArray}}
+            // Path arrays may be delimited (e.g., comma, pipe, etc.)
+            auto val = req.matches[{{vendorExtensions.pathIndex}}];
+            std::stringstream ss(val);
+            std::string item;
+            while (std::getline(ss, item, ',')) {
+                std::string trimmed = trim(item);
+                if (!trimmed.empty()) {
+                    params.m_{{paramName}}.emplace_back(trimmed);
+                }
+            }
+            {{/vendorExtensions.isArray}}
+            {{#vendorExtensions.isEnum}}
+            params.m_{{paramName}} = {{enumFromStringHelper}}(req.matches[{{vendorExtensions.pathIndex}}]);
+            {{/vendorExtensions.isEnum}}
+            {{#vendorExtensions.isString}}
+            params.m_{{paramName}} = req.matches[{{vendorExtensions.pathIndex}}];
+            {{/vendorExtensions.isString}}
+            {{#vendorExtensions.isInt}}
+            params.m_{{paramName}} = std::stoi(req.matches[{{vendorExtensions.pathIndex}}]);
+            {{/vendorExtensions.isInt}}
+            {{#vendorExtensions.isLong}}
+            params.m_{{paramName}} = std::stoll(req.matches[{{vendorExtensions.pathIndex}}]);
+            {{/vendorExtensions.isLong}}
+            {{#vendorExtensions.isBool}}
+            params.m_{{paramName}} = (req.matches[{{vendorExtensions.pathIndex}}] == "true");
+            {{/vendorExtensions.isBool}}
+            {{#vendorExtensions.isDouble}}
+            params.m_{{paramName}} = std::stod(req.matches[{{vendorExtensions.pathIndex}}]);
+            {{/vendorExtensions.isDouble}}
+            {{#vendorExtensions.isFloat}}
+            params.m_{{paramName}} = std::stof(req.matches[{{vendorExtensions.pathIndex}}]);
+            {{/vendorExtensions.isFloat}}
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid path parameter '{{baseName}}': " + std::string(e.what()));
+        }
+    }
+{{/pathParams}}
+{{#cookieParams}}
+{{#-first}}
+
+{{/-first}}
+    // Cookie Parameters - {{baseName}}
+    try
+    {
+        auto cookieHeader = req.get_header_value("Cookie");
+        if (!cookieHeader.empty())
+        {
+            std::string cookieValue;
+            std::string key = "{{baseName}}=";
+            size_t start = cookieHeader.find(key);
+            if (start != std::string::npos)
+            {
+                start += key.length();
+                size_t end = cookieHeader.find(";", start);
+                if (end == std::string::npos) end = cookieHeader.length();
+                cookieValue = cookieHeader.substr(start, end - start);
+                {{#vendorExtensions.isObject}}params.m_{{paramName}} = nlohmann::json::parse(cookieValue);{{/vendorExtensions.isObject}}{{#vendorExtensions.isArray}}std::stringstream ss(cookieValue);
+                std::string item;
+                while (std::getline(ss, item, ',')) {
+                    std::string trimmed = trim(item);
+                    if (!trimmed.empty()) {
+                        params.m_{{paramName}}.emplace_back(trimmed);
+                    }
+                }{{/vendorExtensions.isArray}}{{#vendorExtensions.isEnum}}params.m_{{paramName}} = {{enumFromStringHelper}}(cookieValue);{{/vendorExtensions.isEnum}}{{#vendorExtensions.isString}}params.m_{{paramName}} = cookieValue;{{/vendorExtensions.isString}}{{#vendorExtensions.isInt}}params.m_{{paramName}} = std::stoi(cookieValue);{{/vendorExtensions.isInt}}{{#vendorExtensions.isLong}}params.m_{{paramName}} = std::stoll(cookieValue);{{/vendorExtensions.isLong}}{{#vendorExtensions.isBool}}params.m_{{paramName}} = (cookieValue == "true");{{/vendorExtensions.isBool}}{{#vendorExtensions.isDouble}}params.m_{{paramName}} = std::stod(cookieValue);{{/vendorExtensions.isDouble}}{{#vendorExtensions.isFloat}}params.m_{{paramName}} = std::stof(cookieValue);{{/vendorExtensions.isFloat}}{{^vendorExtensions.isObject}}{{^vendorExtensions.isArray}}{{^vendorExtensions.isEnum}}{{^vendorExtensions.isString}}{{^vendorExtensions.isInt}}{{^vendorExtensions.isLong}}{{^vendorExtensions.isBool}}{{^vendorExtensions.isDouble}}{{^vendorExtensions.isFloat}}params.m_{{paramName}} = cookieValue;{{/vendorExtensions.isFloat}}{{/vendorExtensions.isDouble}}{{/vendorExtensions.isBool}}{{/vendorExtensions.isLong}}{{/vendorExtensions.isInt}}{{/vendorExtensions.isString}}{{/vendorExtensions.isEnum}}{{/vendorExtensions.isArray}}{{/vendorExtensions.isObject}}
+            }{{^vendorExtensions.isRequired}}{{#vendorExtensions.hasDefaultValue}}
+            else
+            {
+                // Use default value for optional parameter
+                params.m_{{paramName}} = {{{vendorExtensions.defaultValue}}};
+            }{{/vendorExtensions.hasDefaultValue}}{{/vendorExtensions.isRequired}}
+        }{{^vendorExtensions.isRequired}}{{#vendorExtensions.hasDefaultValue}}
+        else
+        {
+            // Use default value for optional parameter
+            params.m_{{paramName}} = {{{vendorExtensions.defaultValue}}};
+        }{{/vendorExtensions.hasDefaultValue}}{{/vendorExtensions.isRequired}}
+    }
+    catch (const std::exception& e)
+    {
+        errors.push_back("Invalid cookie parameter '{{baseName}}': " + std::string(e.what()));
+    }
+{{/cookieParams}}
+
+    // Return errors via out-parameter, return false if any errors
+    if (!errors.empty())
+    {
+        paramErrors = std::move(errors);
+        return false;
+    }
+    return true;
 }
 {{/hasAnyRequestSchema}}
 {{#hasAnyResponseSchema}}
-void {{apiClassnameInPascalCase}}::handle{{responseType}}(const {{responseType}}& result, httplib::Response& res) {
-    std::visit([&](const auto& value) {
+void {{apiClassnameInPascalCase}}::handle{{responseType}}(const {{responseType}}& result, httplib::Response& res)
+{
+{{#hasSingleResponseType}}
+    // Single response type
+    res.status = {{#successCodeToTypes}}{{successConstName}}{{/successCodeToTypes}}{{#errorCodeToTypes}}{{errorConstName}}{{/errorCodeToTypes}};
+    nlohmann::json responseJson = {{singleResponseType}}::toJson(result);
+    res.set_content(responseJson.dump(), "application/json");
+{{/hasSingleResponseType}}
+{{^hasSingleResponseType}}
+    std::visit([&](const auto& value)
+    {
         using T = std::decay_t<decltype(value)>;
-{{#successCodeToTypes}}{{#successType}}{{#-first}}        //Success types{{/-first}}
-        if constexpr (std::is_same_v<T, {{successType}}>) {
+{{#successCodeToTypes}}{{#-first}}
+        // Success types
+{{/-first}}{{^-first}}        else {{/-first}}if constexpr (std::is_same_v<T, {{successType}}>)
+        {
             res.status = {{successConstName}};
-            res.set_content(value.toJson(value).dump(), "application/json");
-        }{{/successType}}{{/successCodeToTypes}}
-{{#errorCodeToTypes}}{{#errorType}}{{#-first}}        //Error types{{/-first}}
-        else if constexpr (std::is_same_v<T, {{errorType}}>) {
+            nlohmann::json responseJson = {{successType}}::toJson(value);
+            res.set_content(responseJson.dump(), "application/json");
+        }{{/successCodeToTypes}}{{#errorCodeToTypes}}{{#-first}}
+        // Error types{{/-first}}
+        else if constexpr (std::is_same_v<T, {{errorType}}>)
+        {
             res.status = {{errorConstName}};
-            res.set_content(value.toJson(value).dump(), "application/json");
-        }{{/errorType}}{{/errorCodeToTypes}}{{^errorCodeToTypes}}// No Error types defined{{/errorCodeToTypes}}
+            res.set_content({{errorType}}::toJson(value).dump(), "application/json");
+        }{{/errorCodeToTypes}}{{^successCodeToTypes}}{{^errorCodeToTypes}}
+        // No response types defined
+        res.status = {{statusCodeToConst.500}};
+        res.set_content("{\"error\": \"No response handler defined\"}", "application/json");
+{{/errorCodeToTypes}}{{/successCodeToTypes}}
     }, result);
+{{/hasSingleResponseType}}
 }
 {{/hasAnyResponseSchema}}
 {{/vendorExtensions}}
 {{/operation}}
 {{/operations}}
 
-void {{apiClassnameInPascalCase}}::registerRoutes(httplib::Server& svr) {
+{{#hasAnyAuth}}
+bool {{apiClassnameInPascalCase}}::performAuthentication(
+    const httplib::Request& req,
+    std::shared_ptr<AuthenticationManager> auth,
+    httplib::Response& res)
+{
+    if (!auth)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "AuthenticationManager not configured";
+        res.status = {{statusCodeToConst.500}};
+        res.set_content(errorJson.dump(), "application/json");
+        return false;
+    }
+
+    {{#hasApiKeyAuth}}
+    {{#apiKeyAuth}}
+    {{#isKeyInHeader}}
+    if (req.has_header("{{keyParamName}}"))
+    {
+        if (auth->validateApiKey(req.get_header_value("{{keyParamName}}"))) return true;
+    }
+    {{/isKeyInHeader}}
+    {{#isKeyInQuery}}
+    if (req.has_param("{{keyParamName}}"))
+    {
+        if (auth->validateApiKey(req.get_param_value("{{keyParamName}}"))) return true;
+    }
+    {{/isKeyInQuery}}
+    {{#isKeyInCookie}}
+    {
+        auto cookieHeader = req.get_header_value("Cookie");
+        std::string key = "{{keyParamName}}=";
+        size_t start = cookieHeader.find(key);
+        if (start != std::string::npos) {
+            start += key.length();
+            size_t end = cookieHeader.find(";", start);
+            if (end == std::string::npos) end = cookieHeader.length();
+            std::string cookieValue = cookieHeader.substr(start, end - start);
+            if (auth->validateApiKey(cookieValue)) return true;
+        }
+    }
+    {{/isKeyInCookie}}
+    {{/apiKeyAuth}}
+    {{/hasApiKeyAuth}}
+
+    {{#hasBasicAuth}}
+    if (req.has_header("Authorization"))
+    {
+        auto authHeader = req.get_header_value("Authorization");
+        if (authHeader.find("Basic ") == 0)
+        {
+            std::string credentials = authHeader.substr(6);
+            if (auth->validateBasicAuth(credentials, "")) return true;
+        }
+    }
+    {{/hasBasicAuth}}
+
+    {{#hasBearerAuth}}
+    if (req.has_header("Authorization"))
+    {
+        auto authHeader = req.get_header_value("Authorization");
+        if (authHeader.find("Bearer ") == 0)
+        {
+            std::string token = authHeader.substr(7);
+            if (auth->validateBearerToken(token)) return true;
+        }
+    }
+    {{/hasBearerAuth}}
+
+    {{#hasOAuth2}}
+    if (req.has_header("Authorization"))
+    {
+        auto authHeader = req.get_header_value("Authorization");
+        if (authHeader.find("Bearer ") == 0)
+        {
+            std::string token = authHeader.substr(7);
+            {{#oauth2Auth}}
+            std::vector<std::string> requiredScopes = { {{#scopes}}"{{scope}}"{{^-last}}, {{/-last}}{{/scopes}} };
+            if (auth->validateOAuth2(token, requiredScopes)) return true;
+            {{/oauth2Auth}}
+        }
+    }
+    {{/hasOAuth2}}
+
+    return false;
+}
+{{/hasAnyAuth}}
+
+{{#operations}}
+{{#operation}}
+{{#vendorExtensions}}
+void {{apiClassnameInPascalCase}}::handle{{operationIdPascalCase}}Request([[maybe_unused]] const httplib::Request& req, httplib::Response& res{{#hasAuth}}, std::shared_ptr<AuthenticationManager> auth{{/hasAuth}})
+{
+    try
+    {
+{{#hasAuth}}
+        if (!performAuthentication(req, auth, res))
+        {
+            nlohmann::json errorJson = nlohmann::json::object();
+            errorJson["message"] = "Authentication required";
+            res.status = {{statusCodeToConst.401}};
+            res.set_content(errorJson.dump(), "application/json");
+            return;
+        }
+{{/hasAuth}}{{#hasAnyRequestSchema}}
+        {{apiClassnameInPascalCase}}::{{requestType}} params;
+        std::vector<std::string> paramErrors;
+        if (!parse{{operationIdPascalCase}}Params(req, params, paramErrors))
+        {
+            nlohmann::json errorJson = nlohmann::json::object();
+            errorJson["message"] = "Invalid parameters";
+            errorJson["errors"] = paramErrors;
+            res.status = {{statusCodeToConst.400}};
+            res.set_content(errorJson.dump(), "application/json");
+            return;
+        }
+{{#hasAnyResponseSchema}}
+        auto result = {{handlerFunctionName}}(params);
+        handle{{responseType}}(result, res);
+{{/hasAnyResponseSchema}}{{^hasAnyResponseSchema}}
+        {{handlerFunctionName}}(params);
+        res.status = {{statusCodeToConst.204}};
+{{/hasAnyResponseSchema}}{{/hasAnyRequestSchema}}{{^hasAnyRequestSchema}}{{#hasAnyResponseSchema}}
+        auto result = {{handlerFunctionName}}();
+        handle{{responseType}}(result, res);
+{{/hasAnyResponseSchema}}{{^hasAnyResponseSchema}}
+        {{handlerFunctionName}}();
+        res.status = {{statusCodeToConst.204}};
+{{/hasAnyResponseSchema}}{{/hasAnyRequestSchema}}
+    }{{#requestModel}}
+    catch (const nlohmann::json::parse_error& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Invalid JSON: " + std::string(e.what());
+        res.status = {{statusCodeToConst.400}};
+        res.set_content(errorJson.dump(), "application/json");
+    }
+    catch (const nlohmann::json::invalid_iterator& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Invalid JSON: " + std::string(e.what());
+        res.status = {{statusCodeToConst.400}};
+        res.set_content(errorJson.dump(), "application/json");
+    }
+    catch (const nlohmann::json::type_error& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Invalid JSON: " + std::string(e.what());
+        res.status = {{statusCodeToConst.400}};
+        res.set_content(errorJson.dump(), "application/json");
+    }
+    catch (const nlohmann::json::out_of_range& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Invalid JSON: " + std::string(e.what());
+        res.status = {{statusCodeToConst.400}};
+        res.set_content(errorJson.dump(), "application/json");
+    }
+    catch (const nlohmann::json::other_error& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Invalid JSON: " + std::string(e.what());
+        res.status = {{statusCodeToConst.400}};
+        res.set_content(errorJson.dump(), "application/json");
+    }{{/requestModel}}{{#vendorExtensions.hasPrimitiveParams}}
+    catch (const std::invalid_argument& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Invalid parameter: " + std::string(e.what());
+        res.status = {{statusCodeToConst.400}};
+        res.set_content(errorJson.dump(), "application/json");
+    }
+    catch (const std::out_of_range& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Invalid parameter: " + std::string(e.what());
+        res.status = {{statusCodeToConst.400}};
+        res.set_content(errorJson.dump(), "application/json");
+    }{{/vendorExtensions.hasPrimitiveParams}}{{^requestModel}}{{^vendorExtensions.hasPrimitiveParams}}
+    catch (const std::exception& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Internal error: " + std::string(e.what());
+        res.status = {{statusCodeToConst.500}};
+        res.set_content(errorJson.dump(), "application/json");
+    }{{/vendorExtensions.hasPrimitiveParams}}{{/requestModel}}
+}
+
+{{/vendorExtensions}}
+{{/operation}}
+{{/operations}}
+
+void {{apiClassnameInPascalCase}}::registerRoutes(httplib::Server& svr{{#hasAnyAuth}}, std::shared_ptr<AuthenticationManager> auth{{/hasAnyAuth}})
+{
     {{#operations}}
     {{#operation}}
     {{#vendorExtensions}}
-    svr.{{httpMethod}}("{{path}}", [this]([[maybe_unused]]const httplib::Request& req, httplib::Response& res) {
-        try {
-            {{#hasAnyRequestSchema}}
-            auto params = parse{{operationIdPascalCase}}Params(req);
-            {{/hasAnyRequestSchema}}
-            auto result = {{handlerFunctionName}}({{#hasAnyRequestSchema}}params{{/hasAnyRequestSchema}});
-            {{#hasAnyResponseSchema}}
-            handle{{responseType}}(result, res);
-            {{/hasAnyResponseSchema}}
-        } {{#requestModel}}catch (const nlohmann::json::parse_error& e) {
-            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
-            res.set_content(errorJson.dump(), "application/json");
-        }  catch (const nlohmann::json::invalid_iterator& e) {
-            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
-            res.set_content(errorJson.dump(), "application/json");
-        } catch (const nlohmann::json::type_error& e) {
-            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
-            res.set_content(errorJson.dump(), "application/json");
-        }  catch (const nlohmann::json::out_of_range& e) {
-            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
-            res.set_content(errorJson.dump(), "application/json");
-        } catch (const nlohmann::json::other_error& e) {
-            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
-            res.set_content(errorJson.dump(), "application/json");
-        }{{/requestModel}}{{#vendorExtensions.hasPrimitiveParams}} catch (const std::invalid_argument& e) {
-            nlohmann::json errorJson = { {"message", "Internal error: " + std::string(e.what())} };
-            res.set_content(errorJson.dump(), "application/json");
-        } catch (const std::out_of_range& e) {
-            nlohmann::json errorJson = { {"message", "Internal error: " + std::string(e.what())} };
-            res.set_content(errorJson.dump(), "application/json");
-        } {{/vendorExtensions.hasPrimitiveParams}}{{^requestModel}}{{^vendorExtensions.hasPrimitiveParams}}catch (const std::exception& e) {
-            nlohmann::json errorJson = { {"message", "Internal error: " + std::string(e.what())} };
-            res.set_content(errorJson.dump(), "application/json");
-        }{{/vendorExtensions.hasPrimitiveParams}}{{/requestModel}}
+    svr.{{httpMethod}}("{{path}}", [this{{#hasAuth}}, auth{{/hasAuth}}]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    {
+        handle{{operationIdPascalCase}}Request(req, res{{#hasAuth}}, auth{{/hasAuth}});
     });
     {{/vendorExtensions}}
     {{/operation}}

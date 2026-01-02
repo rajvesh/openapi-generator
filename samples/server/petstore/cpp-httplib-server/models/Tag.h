@@ -8,11 +8,13 @@
 #include <nlohmann/json.hpp>
 #include <string>
 
-namespace sample::openapi::models {
+namespace models {
+
 
 class Tag
 {
 public:
+
     Tag();
     virtual ~Tag() = default;
 
@@ -25,14 +27,17 @@ public:
     void setId(const long& id);
     [[nodiscard]] std::string getName() const;
     void setName(const std::string& name);
+
     // nlohmann::json NLOHMANN_DEFINE_TYPE_INTRUSIVE macro for serialization and deserialization
     // In order to use this macro, member variables must match with the json values, else this MACRO will throw exceptions.
     // Hence the member variables are named exactly as in the json schema.
+    // NOTE: If you encounter issues with std::variant (anyOf/oneOf), provide custom to_json/from_json for the union type.
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(Tag, id, name)
-private:
 
+private:
     long id;
     std::string name;
 };
 
-} // namespace sample::openapi::models
+} // namespace models
+

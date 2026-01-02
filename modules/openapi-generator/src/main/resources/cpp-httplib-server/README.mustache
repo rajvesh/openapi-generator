@@ -60,51 +60,66 @@ auto parsedModel = {{vendorExtensions.modelNamespace}}::{{vendorExtensions.model
 
 ### API Classes
 
+Each API is generated as an abstract base class with pure virtual methods that you must implement.
 
 {{#apiInfo}}
 {{#apis}}
 {{#operations}}
 #### {{classname}}
 
-To implement this API, create a class that inherits from the generated base class:
+Create a class that inherits from the generated base class:
 
 ```cpp
+#include "api/{{classFilename}}{{apiSuffix}}.h"
+
 class {{classname}}Impl : public {{apiNamespace}}::{{classname}} {
 public:
     {{#operation}}
     {{#vendorExtensions}}
-    // Handler for this endpoint
     {{#hasAnyResponseSchema}}
-    {{handlerFunctionResponse}} {{handlerFunctionName}}({{#hasAnyRequestSchema}}const {{handlerFunctionRequest}}& params{{/hasAnyRequestSchema}}) override {
-        // Access parameters from the params struct:
-        // - Query parameters: params.m_<paramName>
-        // - Header parameters: params.m_<paramName>
-        // - Request body (if present): params.m_request
-        // Example:
-        //   int id = params.m_id; // query/header param
-        //   std::string token = params.m_token; // header param
-        //   if (params.m_request) { /* use request body */ }
+    {{responseType}} {{handlerFunctionName}}({{#hasAnyRequestSchema}}const {{requestType}}& params{{/hasAnyRequestSchema}}) override {
+        {{#hasAnyRequestSchema}}
+        // Access request parameters:
+        {{#pathParams}}
+        // Path: params.m_{{paramName}}
+        {{/pathParams}}
+        {{#queryParams}}
+        // Query: params.m_{{paramName}}{{^vendorExtensions.isRequired}} (optional){{/vendorExtensions.isRequired}}
+        {{/queryParams}}
+        {{#headerParams}}
+        // Header: params.m_{{paramName}}{{^vendorExtensions.isRequired}} (optional){{/vendorExtensions.isRequired}}
+        {{/headerParams}}
+        {{#requestModel}}
+        // Body: params.m_request (std::optional<{{requestModelNamespace}}::{{requestModel}}>)
+        {{/requestModel}}
+        {{/hasAnyRequestSchema}}
 
-        // Implement your logic here
-
-    // For successful response:
-    // Use the corresponding status code constant for the success type:
-    //   return {{successType}}(); // Will set status code {{successConstName}}
-    return {{successType}}();
-
-    // For error responses:
-    // Use the corresponding status code constant for each error type:
-    {{#errorTypes}}
-    // return {{.}}(); // Will set status code {{errorConstName}}
-    {{/errorTypes}}
+        // Implement your business logic here
+        
+        {{#successCodeToTypes}}
+        // Return success response (HTTP {{successConstName}}):
+        {{successType}} successResponse;
+        // ... populate response ...
+        return successResponse;
+        {{/successCodeToTypes}}
+        {{#errorCodeToTypes}}
+        
+        // Or return error response (HTTP {{errorConstName}}):
+        // {{errorType}} errorResponse;
+        // return errorResponse;
+        {{/errorCodeToTypes}}
     }
     {{/hasAnyResponseSchema}}
     {{^hasAnyResponseSchema}}
-    void {{handlerFunctionName}}({{#hasAnyRequestSchema}}const {{handlerFunctionRequest}}& params{{/hasAnyRequestSchema}}) override {
+    void {{handlerFunctionName}}({{#hasAnyRequestSchema}}const {{requestType}}& params{{/hasAnyRequestSchema}}) override {
+        {{#hasAnyRequestSchema}}
+        // Access request parameters from params struct
+        {{/hasAnyRequestSchema}}
         // Implement your logic here
     }
     {{/hasAnyResponseSchema}}
     {{/vendorExtensions}}
+    
     {{/operation}}
 };
 ```
@@ -114,47 +129,226 @@ public:
 
 ## Running the Server
 
+Here's a complete example of setting up and running the server:
+
 ```cpp
 #include <httplib.h>
-#include "api/YourApiImpl.h"
+#include <memory>
+{{#apiInfo}}{{#apis}}{{#operations}}
+#include "api/{{classFilename}}{{apiSuffix}}.h"
+{{/operations}}{{/apis}}{{/apiInfo}}
+{{#hasAuthMethods}}
+#include "api/AuthenticationManager.h"
+{{/hasAuthMethods}}
 
 int main() {
-    // Create server
-    auto svr = std::make_unique<httplib::Server>();
-
-    // Create API implementation
-    auto <your_api>Impl = std::make_shared<YourApiImpl>();
-
+    httplib::Server server;
+    
+{{#hasAuthMethods}}
+    // Create authentication manager (required for this API)
+    auto authMgr = std::make_shared<MyAuthManager>();
+    
+{{/hasAuthMethods}}
+    // Create API implementations
+{{#apiInfo}}{{#apis}}{{#operations}}
+    {{classname}}Impl {{classVarName}};
+{{/operations}}{{/apis}}{{/apiInfo}}
+    
     // Register routes
-    <your_api>Impl->RegisterRoutes(std::move(svr));
-
-    // Start server on port 8080
-    svr->listen("localhost", 8080);
+{{#apiInfo}}{{#apis}}{{#operations}}
+    {{classVarName}}.registerRoutes(server{{#hasAuthMethods}}, authMgr{{/hasAuthMethods}});
+{{/operations}}{{/apis}}{{/apiInfo}}
+    
+    // Start server
+    std::cout << "Server starting on http://localhost:8080" << std::endl;
+    server.listen("localhost", 8080);
 
     return 0;
 }
 ```
 
-## Error Handling
+{{#hasAuthMethods}}
+### With Authentication
 
+When authentication is required, you must:
+1. Implement the `AuthenticationManager` interface (see Authentication section below)
+2. Pass the authentication manager to `registerRoutes()`
 
-Each API endpoint returns a `std::variant` type that can hold either a success response or one of several error responses.
-The server automatically handles this variant and returns the appropriate HTTP status code and JSON body using the generated helper functions.
+{{/hasAuthMethods}}
+{{^hasAuthMethods}}
+### Without Authentication
 
-For each response type (success or error), a corresponding status code constant (e.g., `MYRESPONSE_200`, `MYERROR_400`) is generated and used by the server when returning that type. You do not need to set the status code manually; just return the appropriate type from your handler.
+This API does not require authentication. Simply create your API implementations and register them with the server.
 
-Error handling for invalid parameters or JSON is performed automatically in the generated route registration code. You can customize error responses by returning the appropriate error type from your handler.
+{{/hasAuthMethods}}
 
-## Working with Optional Fields
+## Authentication
 
-Optional parameters and model fields are represented using `std::optional`:
+{{#hasAuthMethods}}
+This API requires authentication. Implement the `AuthenticationManager` interface to provide your authentication logic:
 
 ```cpp
-if (model.getOptionalField()) {
-    // Field is present
-    auto value = *model.getOptionalField();
-} else {
-    // Field is not present
+#include "api/AuthenticationManager.h"
+
+class MyAuthManager : public {{apiNamespace}}::AuthenticationManager {
+public:
+    bool validateApiKey(const std::string& key) override {
+        // Validate API key from header, query, or cookie
+        // Example: check against database or cache
+        return checkApiKeyInDatabase(key);
+    }
+    
+    bool validateBearerToken(const std::string& token) override {
+        // Validate JWT or other bearer tokens
+        // Example: verify signature and expiration
+        return jwt::verify(token, secret_key);
+    }
+    
+    bool validateBasicAuth(const std::string& username, const std::string& password) override {
+        // Validate username/password credentials
+        // Example: check against user database with hashed passwords
+        auto user = findUser(username);
+        return user && bcrypt::verify(password, user->passwordHash);
+    }
+    
+    bool validateOAuth2(const std::string& token, const std::vector<std::string>& scopes) override {
+        // Validate OAuth2 token and check required scopes
+        // Example: introspect token and verify scopes
+        auto introspection = oauthProvider.introspect(token);
+        return introspection.active && hasAllScopes(introspection.scopes, scopes);
+    }
+};
+```
+
+### Authentication Flow
+
+1. The server automatically extracts credentials from requests (headers, query params, cookies)
+2. Before calling your handler, it validates credentials using your `AuthenticationManager`
+3. If validation fails, the server returns HTTP 401 Unauthorized automatically
+4. If validation succeeds, your handler is called
+
+### Security Schemes
+
+The generated code supports:
+- **API Key**: Header, query parameter, or cookie-based authentication
+- **Bearer Token**: Authorization header with "Bearer" scheme (e.g., JWT)
+- **Basic Auth**: HTTP Basic authentication (username:password)
+- **OAuth2**: OAuth 2.0 token-based authentication with scope validation
+
+{{/hasAuthMethods}}
+{{^hasAuthMethods}}
+This API does not require authentication.
+
+{{/hasAuthMethods}}
+
+## Error Handling
+
+### Response Variants
+
+Each API endpoint that returns data uses `std::variant` to represent multiple possible response types (success and errors):
+
+```cpp
+// Example: endpoint returns success (User) or errors (NotFound, ServerError)
+using GetUserResponse = std::variant<User, NotFound, ServerError>;
+
+GetUserResponse handleGetUser(const GetUserRequest& params) override {
+    if (userExists(params.m_userId)) {
+        User user = fetchUser(params.m_userId);
+        return user;  // Automatically sets HTTP 200
+    } else {
+        NotFound error;
+        error.setMessage("User not found");
+        return error;  // Automatically sets HTTP 404
+    }
+}
+```
+
+The server automatically:
+- Detects which type is returned from the variant
+- Sets the appropriate HTTP status code
+- Serializes the response to JSON
+
+### HTTP Status Codes
+
+Status codes are automatically set based on the response type you return. Each model type is associated with a specific HTTP status code defined in your OpenAPI specification.
+
+### Parameter Validation
+
+The generated code automatically validates:
+- **Required parameters**: Returns HTTP 400 if missing
+- **Type conversion**: Returns HTTP 400 if parameter cannot be converted to expected type
+- **JSON parsing**: Returns HTTP 400 if request body is invalid JSON
+
+Custom validation logic should be implemented in your handler methods.
+
+### Working with Optional Parameters
+
+Optional parameters and model fields use `std::optional`:
+
+```cpp
+void handleRequest(const RequestParams& params) override {
+    // Check if optional query parameter is present
+    if (params.m_optionalParam) {
+        auto value = *params.m_optionalParam;  // Dereference to get value
+        // Use value...
+    }
+    
+    // Check if optional request body is present
+    if (params.m_request) {
+        auto body = *params.m_request;  // Dereference to get body
+        // Use body...
+    }
+}
+```
+
+## Advanced Features
+
+### Parameter Serialization Styles
+
+The generator supports various parameter serialization styles as defined in OpenAPI:
+
+- **simple**: Comma-separated values (default for path/header)
+- **form**: Ampersand-separated values (default for query)
+- **spaceDelimited**: Space-separated values
+- **pipeDelimited**: Pipe-separated values
+- **deepObject**: Nested object notation for query parameters
+
+These are automatically handled during parameter parsing.
+
+### Union Types (anyOf/oneOf)
+
+When your OpenAPI spec uses `anyOf` or `oneOf`, the generated code uses `std::variant`:
+
+```cpp
+// OpenAPI: { "anyOf": [{"type": "string"}, {"type": "number"}] }
+using MyUnionType = std::variant<std::string, double>;
+
+// In your model:
+MyUnionType value;
+
+// Use std::visit to handle different types:
+std::visit([](const auto& v) {
+    using T = std::decay_t<decltype(v)>;
+    if constexpr (std::is_same_v<T, std::string>) {
+        std::cout << "String: " << v << std::endl;
+    } else if constexpr (std::is_same_v<T, double>) {
+        std::cout << "Number: " << v << std::endl;
+    }
+}, value);
+```
+
+### HATEOAS Links
+
+If your API responses include HATEOAS links, they are automatically generated in the response JSON:
+
+```json
+{
+  "data": { ... },
+  "_links": {
+    "self": { "href": "/users/123", "method": "GET" },
+    "edit": { "href": "/users/123", "method": "PUT" },
+    "delete": { "href": "/users/123", "method": "DELETE" }
+  }
 }
 ```
 
@@ -162,17 +356,8 @@ if (model.getOptionalField()) {
 
 - [cpp-httplib Documentation](https://github.com/yhirose/cpp-httplib)
 - [nlohmann/json Documentation](https://github.com/nlohmann/json)
-- [OpenAPI Generator Documentation](https://openapi-generator.tech/docs/generators/)
-```cpp
-if (model.getOptionalField()) {
-    // Field is present
-    auto value = *model.getOptionalField();
-} else {
-    // Field is not present
-}
-```
-
-## Additional Resources
+- [OpenAPI Generator Documentation](https://openapi-generator.tech/docs/generators/cpp-httplib-server)
+- [OpenAPI Specification](https://swagger.io/specification/)
 
 - [cpp-httplib Documentation](https://github.com/yhirose/cpp-httplib)
 - [nlohmann/json Documentation](https://github.com/nlohmann/json)

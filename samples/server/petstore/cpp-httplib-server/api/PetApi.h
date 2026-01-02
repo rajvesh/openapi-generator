@@ -6,22 +6,24 @@
 
 #pragma once
 
-#include "models/ApiResponse.h"
-#include "models/Pet.h"
-#include "models/PetError400.h"
-#include "models/PetError500.h"
-#include "models/PetList.h"
-
 #include <httplib.h>
 #include <variant>
 #include <optional>
-namespace sample::openapi::api {
+
+#include "models/ApiResponse.h"
+#include "models/ComplexParamsResponse.h"
+#include "models/Pet.h"
+
+namespace api {
 class Pet {
 public:
     Pet() = default;
     virtual ~Pet() = default;
+    /**
+     * @brief Register all routes for this API
+     * @param svr The httplib::Server instance to register routes on
+     */
     void registerRoutes(httplib::Server& svr);
-
     // =========================
     // ===== Request types =====
     // =========================
@@ -31,66 +33,69 @@ public:
     */
     struct PetPostRequest
     {
-        std::optional<models::Pet> m_request;
-        // Query Params not available
-        // Header Params not available
+        std::optional<models::Pet> m_request; //Request Body
     };
-
 
     /**
-    * @brief Request type for handleDeleteForPetId.
+    * @brief Request type for handleGetForPetComplex.
     */
-    struct PetIdDeleteRequest
+    struct PetComplexGetRequest
     {
-        // No Schema Types defined
-        // Query Params not available
-        std::string m_apiKey;
-    };
 
+        std::optional<DeepObj> m_deepObj; //Query Params (optional)
+        std::optional<std::string> m_enumParam; //Query Params (optional)
+        std::optional<std::vector<std::string>> m_pipeArr; //Query Params (optional)
+        std::optional<std::vector<int>> m_spaceArr; //Query Params (optional)
+        std::optional<std::string> m_xEnumHeader; //HeaderParams (optional)
+        std::optional<std::string> m_cookieEnum; //Cookies (optional)
+    };
 
     /**
-    * @brief Request type for handleGetForFindByStatus.
+    * @brief Request type for handleDeleteForPetpetId.
     */
-    struct FindByStatusGetRequest
+    struct PetpetIdDeleteRequest
     {
-        // No Schema Types defined
-        std::vector<std::string> m_status;
-        // Header Params not available
-    };
 
+        std::optional<std::string> m_apiKey; //Query Params (optional)
+        long m_petId; //PathParams (always required)
+    };
 
     /**
-    * @brief Request type for handleGetForFindByTags.
+    * @brief Request type for handleGetForPetFindByStatus.
     */
-    struct FindByTagsGetRequest
+    struct PetFindByStatusGetRequest
     {
-        // No Schema Types defined
-        std::vector<std::string> m_tags;
-        // Header Params not available
-    };
 
+        std::string m_status; //Query Params (required)
+    };
 
     /**
-    * @brief Request type for handleGetForList.
+    * @brief Request type for handleGetForPetFindByTags.
     */
-    struct ListGetRequest
+    struct PetFindByTagsGetRequest
     {
-        // No Schema Types defined
-        std::string m_status;long m_categoryId;std::vector<long> m_tagIds;int m_page;int m_pageSize;
-        // Header Params not available
+
+        std::vector<std::string> m_tags; //Query Params (required)
     };
 
+    /**
+    * @brief Request type for handleGetForPetpetId.
+    */
+    struct PetpetIdGetRequest
+    {
+
+        std::optional<std::string> m_customHeader; //HeaderParams (optional)
+        long m_petId; //PathParams (always required)
+        std::optional<std::string> m_cookieParam; //Cookies (optional)
+    };
 
     /**
     * @brief Request type for handlePutForPet.
     */
     struct PetPutRequest
     {
-        std::optional<models::Pet> m_request;
-        // Query Params not available
-        // Header Params not available
+        std::optional<models::Pet> m_request; //Request Body
     };
-
 
     // ==========================
     // ===== Response types =====
@@ -100,52 +105,34 @@ public:
     * @brief Response type for handlePostForPet.
     */
     using PetPostResponse = std::variant<
-                                 models::Pet>;
-
-
-    /**
-    * @brief Response type for handleGetForFindByStatus.
-    */
-    using FindByStatusGetResponse = std::variant<
-                                 models::Pet>;
-
+                                        models::Pet ,
+                                        models::ApiResponse >;
 
     /**
-    * @brief Response type for handleGetForFindByTags.
+    * @brief Response type for handleGetForPetComplex.
     */
-    using FindByTagsGetResponse = std::variant<
-                                 models::Pet
-                               , models::PetError400
-                               , models::PetError500>;
-
+    using PetComplexGetResponse = std::variant<
+                                        models::ComplexParamsResponse>;
 
     /**
-    * @brief Response type for handleGetForPetId.
+    * @brief Response type for handleGetForPetFindByStatus.
     */
-    using PetIdGetResponse = std::variant<
-                                 models::Pet>;
-
+    using PetFindByStatusGetResponse = std::variant<
+                                        models::Pet>;
 
     /**
-    * @brief Response type for handleGetForList.
+    * @brief Response type for handleGetForPetFindByTags.
     */
-    using ListGetResponse = std::variant<
-                                 models::PetList>;
-
+    using PetFindByTagsGetResponse = std::variant<
+                                        models::Pet>;
 
     /**
-    * @brief Response type for handlePutForPet.
+    * @brief Response type for handleGetForPetpetId.
     */
-    using PetPutResponse = std::variant<
-                                 models::Pet>;
-
-
-    /**
-    * @brief Response type for handlePostForPetIdUploadImage.
-    */
-    using PetIdUploadImagePostResponse = std::variant<
-                                 models::ApiResponse>;
-
+    using PetpetIdGetResponse = std::variant<
+                                        models::Pet ,
+                                        models::ApiResponse ,
+                                        models::ApiResponse >;
     // ============================================================
     // ===== Pure virtual functions to be handled by the user =====
     // ============================================================
@@ -156,65 +143,62 @@ public:
     virtual PetPostResponse handlePostForPet(const PetPostRequest& params)=0;
 
     /**
-     * PetIdDeleteRequest - struct containing all the query parameters and headers and schemas as available.
+     * PetComplexGetRequest - struct containing all the query parameters and headers and schemas as available.
+     * @return PetComplexGetResponse The response type returned by the handler.
      */
-    virtual void handleDeleteForPetId(const PetIdDeleteRequest& params)=0;
+    virtual PetComplexGetResponse handleGetForPetComplex(const PetComplexGetRequest& params)=0;
 
     /**
-     * FindByStatusGetRequest - struct containing all the query parameters and headers and schemas as available.
-     * @return FindByStatusGetResponse The response type returned by the handler.
+     * PetpetIdDeleteRequest - struct containing all the query parameters and headers and schemas as available.
      */
-    virtual FindByStatusGetResponse handleGetForFindByStatus(const FindByStatusGetRequest& params)=0;
+    virtual void handleDeleteForPetpetId(const PetpetIdDeleteRequest& params)=0;
 
     /**
-     * FindByTagsGetRequest - struct containing all the query parameters and headers and schemas as available.
-     * @return FindByTagsGetResponse The response type returned by the handler.
+     * PetFindByStatusGetRequest - struct containing all the query parameters and headers and schemas as available.
+     * @return PetFindByStatusGetResponse The response type returned by the handler.
      */
-    virtual FindByTagsGetResponse handleGetForFindByTags(const FindByTagsGetRequest& params)=0;
+    virtual PetFindByStatusGetResponse handleGetForPetFindByStatus(const PetFindByStatusGetRequest& params)=0;
 
     /**
-     * @return PetIdGetResponse The response type returned by the handler.
+     * PetFindByTagsGetRequest - struct containing all the query parameters and headers and schemas as available.
+     * @return PetFindByTagsGetResponse The response type returned by the handler.
      */
-    virtual PetIdGetResponse handleGetForPetId()=0;
+    virtual PetFindByTagsGetResponse handleGetForPetFindByTags(const PetFindByTagsGetRequest& params)=0;
 
     /**
-     * ListGetRequest - struct containing all the query parameters and headers and schemas as available.
-     * @return ListGetResponse The response type returned by the handler.
+     * PetpetIdGetRequest - struct containing all the query parameters and headers and schemas as available.
+     * @return PetpetIdGetResponse The response type returned by the handler.
      */
-    virtual ListGetResponse handleGetForList(const ListGetRequest& params)=0;
+    virtual PetpetIdGetResponse handleGetForPetpetId(const PetpetIdGetRequest& params)=0;
 
     /**
      * PetPutRequest - struct containing all the query parameters and headers and schemas as available.
-     * @return PetPutResponse The response type returned by the handler.
      */
-    virtual PetPutResponse handlePutForPet(const PetPutRequest& params)=0;
-
-    /**
-     */
-    virtual void handlePostForPetId()=0;
-
-    /**
-     * @return PetIdUploadImagePostResponse The response type returned by the handler.
-     */
-    virtual PetIdUploadImagePostResponse handlePostForPetIdUploadImage()=0;
+    virtual void handlePutForPet(const PetPutRequest& params)=0;
 
 private:
     // ========================================
     // ===== Helper function declarations =====
     // ========================================
-    static PetPostRequest parsePetParams(const httplib::Request& req);
+    static bool parsePetParams(const httplib::Request& req, PetPostRequest& params, std::vector<std::string>& paramErrors);
+    void handlePetRequest(const httplib::Request& req, httplib::Response& res);
     static void handlePetPostResponse(const PetPostResponse& result, httplib::Response& res);
-    static PetIdDeleteRequest parsePetIdParams(const httplib::Request& req);
-    static FindByStatusGetRequest parseFindByStatusParams(const httplib::Request& req);
-    static void handleFindByStatusGetResponse(const FindByStatusGetResponse& result, httplib::Response& res);
-    static FindByTagsGetRequest parseFindByTagsParams(const httplib::Request& req);
-    static void handleFindByTagsGetResponse(const FindByTagsGetResponse& result, httplib::Response& res);
-    static void handlePetIdGetResponse(const PetIdGetResponse& result, httplib::Response& res);
-    static ListGetRequest parseListParams(const httplib::Request& req);
-    static void handleListGetResponse(const ListGetResponse& result, httplib::Response& res);
-    static PetPutRequest parsePetParams(const httplib::Request& req);
-    static void handlePetPutResponse(const PetPutResponse& result, httplib::Response& res);
-    static void handlePetIdUploadImagePostResponse(const PetIdUploadImagePostResponse& result, httplib::Response& res);
+    static bool parsePetComplexParams(const httplib::Request& req, PetComplexGetRequest& params, std::vector<std::string>& paramErrors);
+    void handlePetComplexRequest(const httplib::Request& req, httplib::Response& res);
+    static void handlePetComplexGetResponse(const PetComplexGetResponse& result, httplib::Response& res);
+    static bool parsePetpetIdParams(const httplib::Request& req, PetpetIdDeleteRequest& params, std::vector<std::string>& paramErrors);
+    void handlePetpetIdRequest(const httplib::Request& req, httplib::Response& res);
+    static bool parsePetFindByStatusParams(const httplib::Request& req, PetFindByStatusGetRequest& params, std::vector<std::string>& paramErrors);
+    void handlePetFindByStatusRequest(const httplib::Request& req, httplib::Response& res);
+    static void handlePetFindByStatusGetResponse(const PetFindByStatusGetResponse& result, httplib::Response& res);
+    static bool parsePetFindByTagsParams(const httplib::Request& req, PetFindByTagsGetRequest& params, std::vector<std::string>& paramErrors);
+    void handlePetFindByTagsRequest(const httplib::Request& req, httplib::Response& res);
+    static void handlePetFindByTagsGetResponse(const PetFindByTagsGetResponse& result, httplib::Response& res);
+    static bool parsePetpetIdParams(const httplib::Request& req, PetpetIdGetRequest& params, std::vector<std::string>& paramErrors);
+    void handlePetpetIdRequest(const httplib::Request& req, httplib::Response& res);
+    static void handlePetpetIdGetResponse(const PetpetIdGetResponse& result, httplib::Response& res);
+    static bool parsePetParams(const httplib::Request& req, PetPutRequest& params, std::vector<std::string>& paramErrors);
+    void handlePetRequest(const httplib::Request& req, httplib::Response& res);
 };
 
-} // namespace sample::openapi::api
+} // namespace api

@@ -1,3 +1,4 @@
+
 {{>License}}
 
 {{#models}}
@@ -15,6 +16,33 @@ namespace {{vendorExtensions.modelNamespace}} {
 // =========================================
 // ===== Serialization/Deserialization =====
 // =========================================
+{{#vars}}
+{{#isUnionType}}
+// Custom serialization for union type: {{unionTypeName}}
+static nlohmann::json {{unionTypeName}}ToJson(const {{unionTypeName}}& v) {
+    try {
+        nlohmann::json j;
+        std::visit([&j](const auto& value) {
+            j = value;
+        }, v);
+        return j;
+    } catch (const std::exception& e) {
+        throw std::runtime_error("Failed to serialize {{unionTypeName}}: " + std::string(e.what()));
+    }
+}
+
+static {{unionTypeName}} {{unionTypeName}}FromJson(const nlohmann::json& j) {
+    // Try to deserialize into each variant type in order{{#unionTypes}}
+    try {
+        return j.get<{{.}}>();
+    } catch (const std::exception&) {
+        // Try next type
+    }{{/unionTypes}}
+    throw std::runtime_error("Could not deserialize into any variant type of {{unionTypeName}}");
+}
+
+{{/isUnionType}}
+{{/vars}}
 nlohmann::json {{vendorExtensions.modelClassName}}::toJson(const {{vendorExtensions.modelClassName}}& obj)
 {
     nlohmann::json json = obj;

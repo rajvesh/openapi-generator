@@ -10,11 +10,34 @@
 
 #include <string>
 
-namespace sample::openapi::models {
+namespace models {
+
 
 class User
 {
 public:
+    enum class UserStatusEnum {
+        _0,
+        _1,
+        _2
+    };
+
+    static std::string EnumToString(UserStatusEnum value) {
+        switch (value) {
+            case UserUserStatusEnum::_0: return "_0";
+            case UserUserStatusEnum::_1: return "_1";
+            case UserUserStatusEnum::_2: return "_2";
+            default: return {};
+        }
+    }
+
+    static UserStatusEnum EnumFromString(const std::string& str) {
+        if (str == "_0") return UserUserStatusEnum::_0;
+        if (str == "_1") return UserUserStatusEnum::_1;
+        if (str == "_2") return UserUserStatusEnum::_2;
+        throw std::invalid_argument("Invalid enum value");
+    }
+
     User();
     virtual ~User() = default;
 
@@ -37,14 +60,16 @@ public:
     void setPassword(const std::string& password);
     [[nodiscard]] std::string getPhone() const;
     void setPhone(const std::string& phone);
-    [[nodiscard]] int getUserStatus() const;
-    void setUserStatus(const int& userStatus);
+    [[nodiscard]] UserUserStatusEnum getUserStatus() const;
+    void setUserStatus(const UserUserStatusEnum& userStatus);
+
     // nlohmann::json NLOHMANN_DEFINE_TYPE_INTRUSIVE macro for serialization and deserialization
     // In order to use this macro, member variables must match with the json values, else this MACRO will throw exceptions.
     // Hence the member variables are named exactly as in the json schema.
+    // NOTE: If you encounter issues with std::variant (anyOf/oneOf), provide custom to_json/from_json for the union type.
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(User, id, username, firstName, lastName, email, password, phone, userStatus)
-private:
 
+private:
     long id;
     std::string username;
     std::string firstName;
@@ -52,7 +77,8 @@ private:
     std::string email;
     std::string password;
     std::string phone;
-    int userStatus;
+    UserUserStatusEnum userStatus;
 };
 
-} // namespace sample::openapi::models
+} // namespace models
+

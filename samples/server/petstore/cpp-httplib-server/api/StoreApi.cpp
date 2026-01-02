@@ -6,103 +6,244 @@
 
 #include "StoreApi.h"
 
-constexpr int HTTP_RESPONSE_CODE_PRIMITIVE_INTEGER = 200;
+
 constexpr int HTTP_RESPONSE_CODE_ORDER = 200;
+constexpr int HTTP_RESPONSE_CODE_NO_CONTENT = 204;
+constexpr int HTTP_RESPONSE_CODE_BAD_REQUEST = 400;
+constexpr int HTTP_RESPONSE_CODE_UNAUTHORIZED = 401;
+constexpr int HTTP_RESPONSE_CODE_INTERNAL_SERVER_ERROR = 500;
 
+namespace api {
 
-namespace sample::openapi::api {
-void Store::handleInventoryGetResponse(const InventoryGetResponse& result, httplib::Response& res) {
-    std::visit([&](const auto& value) {
-        using T = std::decay_t<decltype(value)>;
-//Success types
-        if constexpr (std::is_same_v<T, int>) {
-            res.status = HTTP_RESPONSE_CODE_PRIMITIVE_INTEGER;
-            res.set_content(value.toJson(value).dump(), "application/json");
-        }
+bool Store::parseStoreOrderorderIdParams(const httplib::Request& req, Store::StoreOrderorderIdDeleteRequest& params, std::vector<std::string>& paramErrors)
+{
+    std::vector<std::string> errors;
 
-// No Error types defined
-    }, result);
+    // Path Parameters - orderId (index: 1)
+    try
+    {
+        params.m_orderId = std::stoll(req.matches[1]);
+        // TODO: Handle style/explode/allowReserved for path params
+    }
+    catch (const std::exception& e)
+    {
+        errors.push_back("Invalid path parameter 'orderId': " + std::string(e.what()));
+    }
+
+    // Return errors via out-parameter, return false if any errors
+    if (!errors.empty())
+    {
+        paramErrors = std::move(errors);
+        return false;
+    }
+    return true;
 }
-void Store::handleOrderOrderIdGetResponse(const OrderOrderIdGetResponse& result, httplib::Response& res) {
-    std::visit([&](const auto& value) {
+bool Store::parseStoreOrderorderIdParams(const httplib::Request& req, Store::StoreOrderorderIdGetRequest& params, std::vector<std::string>& paramErrors)
+{
+    std::vector<std::string> errors;
+
+    // Path Parameters - orderId (index: 1)
+    try
+    {
+        params.m_orderId = std::stoll(req.matches[1]);
+        // TODO: Handle style/explode/allowReserved for path params
+    }
+    catch (const std::exception& e)
+    {
+        errors.push_back("Invalid path parameter 'orderId': " + std::string(e.what()));
+    }
+
+    // Return errors via out-parameter, return false if any errors
+    if (!errors.empty())
+    {
+        paramErrors = std::move(errors);
+        return false;
+    }
+    return true;
+}
+void Store::handleStoreOrderorderIdGetResponse(const StoreOrderorderIdGetResponse& result, httplib::Response& res)
+{
+    std::visit([&](const auto& value)
+    {
         using T = std::decay_t<decltype(value)>;
-//Success types
-        if constexpr (std::is_same_v<T, models::Order>) {
+
+        // Success types
+        if constexpr (std::is_same_v<T, models::Order>)
+        {
             res.status = HTTP_RESPONSE_CODE_ORDER;
-            res.set_content(value.toJson(value).dump(), "application/json");
+            nlohmann::json responseJson = models::Order::toJson(value);
+            res.set_content(responseJson.dump(), "application/json");
         }
-
-// No Error types defined
     }, result);
 }
-Store::OrderPostRequest Store::parseOrderParams(const httplib::Request& req) {
-    Store::OrderPostRequest params;
-    nlohmann::json json = nlohmann::json::parse(req.body);
-    params.m_request = models::Order::fromJson(json);
-    return params;
+bool Store::parseStoreOrderParams(const httplib::Request& req, Store::StoreOrderPostRequest& params, std::vector<std::string>& paramErrors)
+{
+    std::vector<std::string> errors;
+    try
+    {
+        nlohmann::json json = nlohmann::json::parse(req.body);
+        params.m_request = models::Order::fromJson(json);
+    }
+    catch (const std::exception& e)
+    {
+        errors.push_back("Invalid request body: " + std::string(e.what()));
+    }
+
+    // Return errors via out-parameter, return false if any errors
+    if (!errors.empty())
+    {
+        paramErrors = std::move(errors);
+        return false;
+    }
+    return true;
 }
-void Store::handleOrderPostResponse(const OrderPostResponse& result, httplib::Response& res) {
-    std::visit([&](const auto& value) {
+void Store::handleStoreOrderPostResponse(const StoreOrderPostResponse& result, httplib::Response& res)
+{
+    std::visit([&](const auto& value)
+    {
         using T = std::decay_t<decltype(value)>;
-//Success types
-        if constexpr (std::is_same_v<T, models::Order>) {
-            res.status = HTTP_RESPONSE_CODE_ORDER;
-            res.set_content(value.toJson(value).dump(), "application/json");
-        }
 
-// No Error types defined
+        // Success types
+        if constexpr (std::is_same_v<T, models::Order>)
+        {
+            res.status = HTTP_RESPONSE_CODE_ORDER;
+            nlohmann::json responseJson = models::Order::toJson(value);
+            res.set_content(responseJson.dump(), "application/json");
+        }
     }, result);
 }
 
-void Store::registerRoutes(httplib::Server& svr) {
-    svr.Delete("/store/order/{orderId}", [this]([[maybe_unused]]const httplib::Request& req, httplib::Response& res) {
-        try {
-            auto result = handleDeleteForOrderOrderId();
-        } catch (const std::exception& e) {
-            nlohmann::json errorJson = { {"message", "Internal error: " + std::string(e.what())} };
+
+void Store::handleStoreOrderorderIdRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+{
+    try
+    { 
+        Store::StoreOrderorderIdDeleteRequest params;
+        std::vector<std::string> paramErrors;
+        if (!parseStoreOrderorderIdParams(req, params, paramErrors))
+        {
+            nlohmann::json errorJson = nlohmann::json::object();
+            errorJson["message"] = "Invalid parameters";
+            errorJson["errors"] = paramErrors;
+            res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
             res.set_content(errorJson.dump(), "application/json");
+            return;
         }
+
+        handleDeleteForStoreOrderorderId(params);
+        res.status = HTTP_RESPONSE_CODE_NO_CONTENT;
+
+    }
+    
+    catch (const std::exception& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Internal error: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_INTERNAL_SERVER_ERROR;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+}
+
+void Store::handleStoreOrderorderIdRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+{
+    try
+    { 
+        Store::StoreOrderorderIdGetRequest params;
+        std::vector<std::string> paramErrors;
+        if (!parseStoreOrderorderIdParams(req, params, paramErrors))
+        {
+            nlohmann::json errorJson = nlohmann::json::object();
+            errorJson["message"] = "Invalid parameters";
+            errorJson["errors"] = paramErrors;
+            res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
+            res.set_content(errorJson.dump(), "application/json");
+            return;
+        }
+        auto result = handleGetForStoreOrderorderId(params);
+        handleStoreOrderorderIdGetResponse(result, res);
+
+    }
+    
+    catch (const std::exception& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Internal error: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_INTERNAL_SERVER_ERROR;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+}
+
+void Store::handleStoreOrderRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+{
+    try
+    { 
+        Store::StoreOrderPostRequest params;
+        std::vector<std::string> paramErrors;
+        if (!parseStoreOrderParams(req, params, paramErrors))
+        {
+            nlohmann::json errorJson = nlohmann::json::object();
+            errorJson["message"] = "Invalid parameters";
+            errorJson["errors"] = paramErrors;
+            res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
+            res.set_content(errorJson.dump(), "application/json");
+            return;
+        }
+        auto result = handlePostForStoreOrder(params);
+        handleStoreOrderPostResponse(result, res);
+
+    }
+    catch (const nlohmann::json::parse_error& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Invalid JSON: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+    catch (const nlohmann::json::invalid_iterator& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Invalid JSON: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+    catch (const nlohmann::json::type_error& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Invalid JSON: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+    catch (const nlohmann::json::out_of_range& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Invalid JSON: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+    catch (const nlohmann::json::other_error& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Invalid JSON: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+}
+
+
+void Store::registerRoutes(httplib::Server& svr)
+{
+    svr.Delete("/store/order/{orderId}", [this]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    {
+        handleStoreOrderorderIdRequest(req, res);
     });
-    svr.Get("/store/inventory", [this]([[maybe_unused]]const httplib::Request& req, httplib::Response& res) {
-        try {
-            auto result = handleGetForInventory();
-            handleInventoryGetResponse(result, res);
-        } catch (const std::exception& e) {
-            nlohmann::json errorJson = { {"message", "Internal error: " + std::string(e.what())} };
-            res.set_content(errorJson.dump(), "application/json");
-        }
+    svr.Get("/store/order/{orderId}", [this]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    {
+        handleStoreOrderorderIdRequest(req, res);
     });
-    svr.Get("/store/order/{orderId}", [this]([[maybe_unused]]const httplib::Request& req, httplib::Response& res) {
-        try {
-            auto result = handleGetForOrderOrderId();
-            handleOrderOrderIdGetResponse(result, res);
-        } catch (const std::exception& e) {
-            nlohmann::json errorJson = { {"message", "Internal error: " + std::string(e.what())} };
-            res.set_content(errorJson.dump(), "application/json");
-        }
-    });
-    svr.Post("/store/order", [this]([[maybe_unused]]const httplib::Request& req, httplib::Response& res) {
-        try {
-            auto params = parseOrderParams(req);
-            auto result = handlePostForOrder(params);
-            handleOrderPostResponse(result, res);
-        } catch (const nlohmann::json::parse_error& e) {
-            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
-            res.set_content(errorJson.dump(), "application/json");
-        }  catch (const nlohmann::json::invalid_iterator& e) {
-            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
-            res.set_content(errorJson.dump(), "application/json");
-        } catch (const nlohmann::json::type_error& e) {
-            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
-            res.set_content(errorJson.dump(), "application/json");
-        }  catch (const nlohmann::json::out_of_range& e) {
-            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
-            res.set_content(errorJson.dump(), "application/json");
-        } catch (const nlohmann::json::other_error& e) {
-            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
-            res.set_content(errorJson.dump(), "application/json");
-        }
+    svr.Post("/store/order", [this]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    {
+        handleStoreOrderRequest(req, res);
     });
 }
 
-} // namespace sample::openapi::api
+} // namespace api

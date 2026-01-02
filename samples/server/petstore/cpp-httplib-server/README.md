@@ -66,6 +66,70 @@ std::string jsonString = json.dump();
 // Deserialize from JSON
 auto parsedModel = models::Category::fromJson(nlohmann::json::parse(jsonString));
 ```
+#### models::ComplexParamsResponse
+
+```cpp
+// Create a model
+auto model = models::ComplexParamsResponse();
+model.setDeepObj(/* value */);  // Set deepObj
+model.setEnumParam(/* value */);  // Set enumParam
+model.setPipeArr(/* value */);  // Set pipeArr
+model.setSpaceArr(/* value */);  // Set spaceArr
+model.setXEnumHeader(/* value */);  // Set x-enum-header
+model.setCookieEnum(/* value */);  // Set cookieEnum
+
+// Serialize to JSON
+nlohmann::json json = models::ComplexParamsResponse::toJson(model);
+std::string jsonString = json.dump();
+
+// Deserialize from JSON
+auto parsedModel = models::ComplexParamsResponse::fromJson(nlohmann::json::parse(jsonString));
+```
+#### models::DeepObj
+
+```cpp
+// Create a model
+auto model = models::DeepObj();
+model.setFoo(/* value */);  // Set foo
+model.setBar(/* value */);  // Set bar
+model.setBaz(/* value */);  // Set baz
+
+// Serialize to JSON
+nlohmann::json json = models::DeepObj::toJson(model);
+std::string jsonString = json.dump();
+
+// Deserialize from JSON
+auto parsedModel = models::DeepObj::fromJson(nlohmann::json::parse(jsonString));
+```
+#### models::DeepObjBaz
+
+```cpp
+// Create a model
+auto model = models::DeepObjBaz();
+model.setX(/* value */);  // Set x
+model.setY(/* value */);  // Set y
+
+// Serialize to JSON
+nlohmann::json json = models::DeepObjBaz::toJson(model);
+std::string jsonString = json.dump();
+
+// Deserialize from JSON
+auto parsedModel = models::DeepObjBaz::fromJson(nlohmann::json::parse(jsonString));
+```
+#### models::NullableExample
+
+```cpp
+// Create a model
+auto model = models::NullableExample();
+model.setMaybeString(/* value */);  // Set maybeString
+
+// Serialize to JSON
+nlohmann::json json = models::NullableExample::toJson(model);
+std::string jsonString = json.dump();
+
+// Deserialize from JSON
+auto parsedModel = models::NullableExample::fromJson(nlohmann::json::parse(jsonString));
+```
 #### models::Order
 
 ```cpp
@@ -91,11 +155,11 @@ auto parsedModel = models::Order::fromJson(nlohmann::json::parse(jsonString));
 // Create a model
 auto model = models::Pet();
 model.setId(/* value */);  // Set id
-model.setCategory(/* value */);  // Set category
 model.setName(/* value */);  // Set name
 model.setPhotoUrls(/* value */);  // Set photoUrls
-model.setTags(/* value */);  // Set tags
 model.setStatus(/* value */);  // Set status
+model.setCategory(/* value */);  // Set category
+model.setTags(/* value */);  // Set tags
 
 // Serialize to JSON
 nlohmann::json json = models::Pet::toJson(model);
@@ -104,21 +168,24 @@ std::string jsonString = json.dump();
 // Deserialize from JSON
 auto parsedModel = models::Pet::fromJson(nlohmann::json::parse(jsonString));
 ```
-#### models::PetError
+#### models::PetOrCategory
 
 ```cpp
 // Create a model
-auto model = models::PetError();
-model.setCode(/* value */);  // Set code
-model.setType(/* value */);  // Set type
-model.setMessage(/* value */);  // Set message
+auto model = models::PetOrCategory();
+model.setId(/* value */);  // Set id
+model.setName(/* value */);  // Set name
+model.setPhotoUrls(/* value */);  // Set photoUrls
+model.setStatus(/* value */);  // Set status
+model.setCategory(/* value */);  // Set category
+model.setTags(/* value */);  // Set tags
 
 // Serialize to JSON
-nlohmann::json json = models::PetError::toJson(model);
+nlohmann::json json = models::PetOrCategory::toJson(model);
 std::string jsonString = json.dump();
 
 // Deserialize from JSON
-auto parsedModel = models::PetError::fromJson(nlohmann::json::parse(jsonString));
+auto parsedModel = models::PetOrCategory::fromJson(nlohmann::json::parse(jsonString));
 ```
 #### models::Tag
 
@@ -161,345 +228,354 @@ auto parsedModel = models::User::fromJson(nlohmann::json::parse(jsonString));
 
 ### API Classes
 
+Each API is generated as an abstract base class with pure virtual methods that you must implement.
 
 #### Pet
 
-To implement this API, create a class that inherits from the generated base class:
+Create a class that inherits from the generated base class:
 
 ```cpp
+#include "api/PetApi.h"
+
 class PetImpl : public api::Pet {
 public:
-    // Handler for this endpoint
-    PostResponseForPet handlePostForPet(const PostRequestForPet& params) override {
-        // Access parameters from the params struct:
-        // - Query parameters: params.m_<paramName>
-        // - Header parameters: params.m_<paramName>
-        // - Request body (if present): params.m_request
-        // Example:
-        //   int id = params.m_id; // query/header param
-        //   std::string token = params.m_token; // header param
-        //   if (params.m_request) { /* use request body */ }
+    PetPostResponse handlePostForPet(const PetPostRequest& params) override {
+        // Access request parameters:
+        // Body: params.m_request (std::optional<models::Pet>)
 
-        // Implement your logic here
-
-    // For successful response:
-    // Use the corresponding status code constant for the success type:
-    //   return models::Pet(); // Will set status code 
-    return models::Pet();
-
-    // For error responses:
-    // Use the corresponding status code constant for each error type:
+        // Implement your business logic here
+        
+        // Return success response (HTTP HTTP_RESPONSE_CODE_PET):
+        models::Pet successResponse;
+        // ... populate response ...
+        return successResponse;
+        
+        // Or return error response (HTTP HTTP_RESPONSE_CODE_API_RESPONSE):
+        // models::ApiResponse errorResponse;
+        // return errorResponse;
     }
-    // Handler for this endpoint
-    void handleDeleteForPetpetId(const DeleteRequestForPetpetId& params) override {
-        // Implement your logic here
+    
+    PetComplexGetResponse handleGetForPetComplex(const PetComplexGetRequest& params) override {
+        // Access request parameters:
+        // Query: params.m_deepObj (optional)
+        // Query: params.m_enumParam (optional)
+        // Query: params.m_pipeArr (optional)
+        // Query: params.m_spaceArr (optional)
+        // Header: params.m_xEnumHeader (optional)
+
+        // Implement your business logic here
+        
+        // Return success response (HTTP HTTP_RESPONSE_CODE_COMPLEX_PARAMS_RESPONSE):
+        models::ComplexParamsResponse successResponse;
+        // ... populate response ...
+        return successResponse;
     }
-    // Handler for this endpoint
-    GetResponseForPetFindByStatus handleGetForPetFindByStatus(const GetRequestForPetFindByStatus& params) override {
-        // Access parameters from the params struct:
-        // - Query parameters: params.m_<paramName>
-        // - Header parameters: params.m_<paramName>
-        // - Request body (if present): params.m_request
-        // Example:
-        //   int id = params.m_id; // query/header param
-        //   std::string token = params.m_token; // header param
-        //   if (params.m_request) { /* use request body */ }
-
-        // Implement your logic here
-
-    // For successful response:
-    // Use the corresponding status code constant for the success type:
-    //   return models::Pet(); // Will set status code 
-    return models::Pet();
-
-    // For error responses:
-    // Use the corresponding status code constant for each error type:
-    }
-    // Handler for this endpoint
-    GetResponseForPetFindByTags handleGetForPetFindByTags(const GetRequestForPetFindByTags& params) override {
-        // Access parameters from the params struct:
-        // - Query parameters: params.m_<paramName>
-        // - Header parameters: params.m_<paramName>
-        // - Request body (if present): params.m_request
-        // Example:
-        //   int id = params.m_id; // query/header param
-        //   std::string token = params.m_token; // header param
-        //   if (params.m_request) { /* use request body */ }
-
-        // Implement your logic here
-
-    // For successful response:
-    // Use the corresponding status code constant for the success type:
-    //   return models::Pet(); // Will set status code 
-    return models::Pet();
-
-    // For error responses:
-    // Use the corresponding status code constant for each error type:
-    }
-    // Handler for this endpoint
-    GetResponseForPetpetId handleGetForPetpetId() override {
-        // Access parameters from the params struct:
-        // - Query parameters: params.m_<paramName>
-        // - Header parameters: params.m_<paramName>
-        // - Request body (if present): params.m_request
-        // Example:
-        //   int id = params.m_id; // query/header param
-        //   std::string token = params.m_token; // header param
-        //   if (params.m_request) { /* use request body */ }
-
-        // Implement your logic here
-
-    // For successful response:
-    // Use the corresponding status code constant for the success type:
-    //   return models::Pet(); // Will set status code 
-    return models::Pet();
-
-    // For error responses:
-    // Use the corresponding status code constant for each error type:
-    }
-    // Handler for this endpoint
-    PutResponseForPet handlePutForPet(const PutRequestForPet& params) override {
-        // Access parameters from the params struct:
-        // - Query parameters: params.m_<paramName>
-        // - Header parameters: params.m_<paramName>
-        // - Request body (if present): params.m_request
-        // Example:
-        //   int id = params.m_id; // query/header param
-        //   std::string token = params.m_token; // header param
-        //   if (params.m_request) { /* use request body */ }
-
-        // Implement your logic here
-
-    // For successful response:
-    // Use the corresponding status code constant for the success type:
-    //   return models::Pet(); // Will set status code 
-    return models::Pet();
-
-    // For error responses:
-    // Use the corresponding status code constant for each error type:
-    }
-    // Handler for this endpoint
-    void handlePostForPetpetId() override {
+    
+    void handleDeleteForPetpetId(const PetpetIdDeleteRequest& params) override {
+        // Access request parameters from params struct
         // Implement your logic here
     }
-    // Handler for this endpoint
-    PostResponseForPetpetIdUploadImage handlePostForPetpetIdUploadImage() override {
-        // Access parameters from the params struct:
-        // - Query parameters: params.m_<paramName>
-        // - Header parameters: params.m_<paramName>
-        // - Request body (if present): params.m_request
-        // Example:
-        //   int id = params.m_id; // query/header param
-        //   std::string token = params.m_token; // header param
-        //   if (params.m_request) { /* use request body */ }
+    
+    PetFindByStatusGetResponse handleGetForPetFindByStatus(const PetFindByStatusGetRequest& params) override {
+        // Access request parameters:
+        // Query: params.m_status
 
-        // Implement your logic here
-
-    // For successful response:
-    // Use the corresponding status code constant for the success type:
-    //   return models::ApiResponse(); // Will set status code 
-    return models::ApiResponse();
-
-    // For error responses:
-    // Use the corresponding status code constant for each error type:
+        // Implement your business logic here
+        
+        // Return success response (HTTP HTTP_RESPONSE_CODE_PET):
+        models::Pet successResponse;
+        // ... populate response ...
+        return successResponse;
     }
+    
+    PetFindByTagsGetResponse handleGetForPetFindByTags(const PetFindByTagsGetRequest& params) override {
+        // Access request parameters:
+        // Query: params.m_tags
+
+        // Implement your business logic here
+        
+        // Return success response (HTTP HTTP_RESPONSE_CODE_PET):
+        models::Pet successResponse;
+        // ... populate response ...
+        return successResponse;
+    }
+    
+    PetpetIdGetResponse handleGetForPetpetId(const PetpetIdGetRequest& params) override {
+        // Access request parameters:
+        // Path: params.m_petId
+        // Header: params.m_customHeader (optional)
+
+        // Implement your business logic here
+        
+        // Return success response (HTTP HTTP_RESPONSE_CODE_PET):
+        models::Pet successResponse;
+        // ... populate response ...
+        return successResponse;
+        
+        // Or return error response (HTTP HTTP_RESPONSE_CODE_API_RESPONSE):
+        // models::ApiResponse errorResponse;
+        // return errorResponse;
+        
+        // Or return error response (HTTP HTTP_RESPONSE_CODE_API_RESPONSE):
+        // models::ApiResponse errorResponse;
+        // return errorResponse;
+    }
+    
+    void handlePutForPet(const PetPutRequest& params) override {
+        // Access request parameters from params struct
+        // Implement your logic here
+    }
+    
 };
 ```
 #### Store
 
-To implement this API, create a class that inherits from the generated base class:
+Create a class that inherits from the generated base class:
 
 ```cpp
+#include "api/StoreApi.h"
+
 class StoreImpl : public api::Store {
 public:
-    // Handler for this endpoint
-    void handleDeleteForStoreOrderorderId() override {
+    void handleDeleteForStoreOrderorderId(const StoreOrderorderIdDeleteRequest& params) override {
+        // Access request parameters from params struct
         // Implement your logic here
     }
-    // Handler for this endpoint
-    GetResponseForStoreInventory handleGetForStoreInventory() override {
-        // Access parameters from the params struct:
-        // - Query parameters: params.m_<paramName>
-        // - Header parameters: params.m_<paramName>
-        // - Request body (if present): params.m_request
-        // Example:
-        //   int id = params.m_id; // query/header param
-        //   std::string token = params.m_token; // header param
-        //   if (params.m_request) { /* use request body */ }
+    
+    StoreOrderorderIdGetResponse handleGetForStoreOrderorderId(const StoreOrderorderIdGetRequest& params) override {
+        // Access request parameters:
+        // Path: params.m_orderId
 
-        // Implement your logic here
-
-    // For successful response:
-    // Use the corresponding status code constant for the success type:
-    //   return int(); // Will set status code 
-    return int();
-
-    // For error responses:
-    // Use the corresponding status code constant for each error type:
+        // Implement your business logic here
+        
+        // Return success response (HTTP HTTP_RESPONSE_CODE_ORDER):
+        models::Order successResponse;
+        // ... populate response ...
+        return successResponse;
     }
-    // Handler for this endpoint
-    GetResponseForStoreOrderorderId handleGetForStoreOrderorderId() override {
-        // Access parameters from the params struct:
-        // - Query parameters: params.m_<paramName>
-        // - Header parameters: params.m_<paramName>
-        // - Request body (if present): params.m_request
-        // Example:
-        //   int id = params.m_id; // query/header param
-        //   std::string token = params.m_token; // header param
-        //   if (params.m_request) { /* use request body */ }
+    
+    StoreOrderPostResponse handlePostForStoreOrder(const StoreOrderPostRequest& params) override {
+        // Access request parameters:
+        // Body: params.m_request (std::optional<models::Order>)
 
-        // Implement your logic here
-
-    // For successful response:
-    // Use the corresponding status code constant for the success type:
-    //   return models::Order(); // Will set status code 
-    return models::Order();
-
-    // For error responses:
-    // Use the corresponding status code constant for each error type:
+        // Implement your business logic here
+        
+        // Return success response (HTTP HTTP_RESPONSE_CODE_ORDER):
+        models::Order successResponse;
+        // ... populate response ...
+        return successResponse;
     }
-    // Handler for this endpoint
-    PostResponseForStoreOrder handlePostForStoreOrder(const PostRequestForStoreOrder& params) override {
-        // Access parameters from the params struct:
-        // - Query parameters: params.m_<paramName>
-        // - Header parameters: params.m_<paramName>
-        // - Request body (if present): params.m_request
-        // Example:
-        //   int id = params.m_id; // query/header param
-        //   std::string token = params.m_token; // header param
-        //   if (params.m_request) { /* use request body */ }
-
-        // Implement your logic here
-
-    // For successful response:
-    // Use the corresponding status code constant for the success type:
-    //   return models::Order(); // Will set status code 
-    return models::Order();
-
-    // For error responses:
-    // Use the corresponding status code constant for each error type:
-    }
+    
 };
 ```
 #### User
 
-To implement this API, create a class that inherits from the generated base class:
+Create a class that inherits from the generated base class:
 
 ```cpp
+#include "api/UserApi.h"
+
 class UserImpl : public api::User {
 public:
-    // Handler for this endpoint
-    void handlePostForUser(const PostRequestForUser& params) override {
-        // Implement your logic here
-    }
-    // Handler for this endpoint
-    void handlePostForUserCreateWithArray(const PostRequestForUserCreateWithArray& params) override {
-        // Implement your logic here
-    }
-    // Handler for this endpoint
-    void handlePostForUserCreateWithList(const PostRequestForUserCreateWithList& params) override {
-        // Implement your logic here
-    }
-    // Handler for this endpoint
-    void handleDeleteForUserusername() override {
-        // Implement your logic here
-    }
-    // Handler for this endpoint
-    GetResponseForUserusername handleGetForUserusername() override {
-        // Access parameters from the params struct:
-        // - Query parameters: params.m_<paramName>
-        // - Header parameters: params.m_<paramName>
-        // - Request body (if present): params.m_request
-        // Example:
-        //   int id = params.m_id; // query/header param
-        //   std::string token = params.m_token; // header param
-        //   if (params.m_request) { /* use request body */ }
+    UserPostResponse handlePostForUser(const UserPostRequest& params) override {
+        // Access request parameters:
+        // Body: params.m_request (std::optional<models::User>)
 
-        // Implement your logic here
-
-    // For successful response:
-    // Use the corresponding status code constant for the success type:
-    //   return models::User(); // Will set status code 
-    return models::User();
-
-    // For error responses:
-    // Use the corresponding status code constant for each error type:
+        // Implement your business logic here
+        
+        // Return success response (HTTP HTTP_RESPONSE_CODE_USER):
+        models::User successResponse;
+        // ... populate response ...
+        return successResponse;
     }
-    // Handler for this endpoint
-    GetResponseForUserLogin handleGetForUserLogin(const GetRequestForUserLogin& params) override {
-        // Access parameters from the params struct:
-        // - Query parameters: params.m_<paramName>
-        // - Header parameters: params.m_<paramName>
-        // - Request body (if present): params.m_request
-        // Example:
-        //   int id = params.m_id; // query/header param
-        //   std::string token = params.m_token; // header param
-        //   if (params.m_request) { /* use request body */ }
-
-        // Implement your logic here
-
-    // For successful response:
-    // Use the corresponding status code constant for the success type:
-    //   return std::string(); // Will set status code 
-    return std::string();
-
-    // For error responses:
-    // Use the corresponding status code constant for each error type:
-    }
-    // Handler for this endpoint
-    void handleGetForUserLogout() override {
+    
+    void handleDeleteForUserusername(const UserusernameDeleteRequest& params) override {
+        // Access request parameters from params struct
         // Implement your logic here
     }
-    // Handler for this endpoint
-    void handlePutForUserusername(const PutRequestForUserusername& params) override {
+    
+    UserusernameGetResponse handleGetForUserusername(const UserusernameGetRequest& params) override {
+        // Access request parameters:
+        // Path: params.m_username
+
+        // Implement your business logic here
+        
+        // Return success response (HTTP HTTP_RESPONSE_CODE_USER):
+        models::User successResponse;
+        // ... populate response ...
+        return successResponse;
+    }
+    
+    void handlePutForUserusername(const UserusernamePutRequest& params) override {
+        // Access request parameters from params struct
         // Implement your logic here
     }
+    
 };
 ```
 
 ## Running the Server
 
+Here's a complete example of setting up and running the server:
+
 ```cpp
 #include <httplib.h>
-#include "api/YourApiImpl.h"
+#include <memory>
+
+#include "api/PetApi.h"
+
+#include "api/StoreApi.h"
+
+#include "api/UserApi.h"
+
 
 int main() {
-    // Create server
-    auto svr = std::make_unique<httplib::Server>();
+    httplib::Server server;
+    
+    // Create API implementations
 
-    // Create API implementation
-    auto <your_api>Impl = std::make_shared<YourApiImpl>();
+    PetImpl pet;
 
+    StoreImpl store;
+
+    UserImpl user;
+
+    
     // Register routes
-    <your_api>Impl->RegisterRoutes(std::move(svr));
 
-    // Start server on port 8080
-    svr->listen("localhost", 8080);
+    pet.registerRoutes(server);
+
+    store.registerRoutes(server);
+
+    user.registerRoutes(server);
+
+    
+    // Start server
+    std::cout << "Server starting on http://localhost:8080" << std::endl;
+    server.listen("localhost", 8080);
 
     return 0;
 }
 ```
 
+### Without Authentication
+
+This API does not require authentication. Simply create your API implementations and register them with the server.
+
+
+## Authentication
+
+This API does not require authentication.
+
+
 ## Error Handling
 
+### Response Variants
 
-Each API endpoint returns a `std::variant` type that can hold either a success response or one of several error responses.
-The server automatically handles this variant and returns the appropriate HTTP status code and JSON body using the generated helper functions.
-
-For each response type (success or error), a corresponding status code constant (e.g., `MYRESPONSE_200`, `MYERROR_400`) is generated and used by the server when returning that type. You do not need to set the status code manually; just return the appropriate type from your handler.
-
-Error handling for invalid parameters or JSON is performed automatically in the generated route registration code. You can customize error responses by returning the appropriate error type from your handler.
-
-## Working with Optional Fields
-
-Optional parameters and model fields are represented using `std::optional`:
+Each API endpoint that returns data uses `std::variant` to represent multiple possible response types (success and errors):
 
 ```cpp
-if (model.getOptionalField()) {
-    // Field is present
-    auto value = *model.getOptionalField();
-} else {
-    // Field is not present
+// Example: endpoint returns success (User) or errors (NotFound, ServerError)
+using GetUserResponse = std::variant<User, NotFound, ServerError>;
+
+GetUserResponse handleGetUser(const GetUserRequest& params) override {
+    if (userExists(params.m_userId)) {
+        User user = fetchUser(params.m_userId);
+        return user;  // Automatically sets HTTP 200
+    } else {
+        NotFound error;
+        error.setMessage("User not found");
+        return error;  // Automatically sets HTTP 404
+    }
+}
+```
+
+The server automatically:
+- Detects which type is returned from the variant
+- Sets the appropriate HTTP status code
+- Serializes the response to JSON
+
+### HTTP Status Codes
+
+Status codes are automatically set based on the response type you return. Each model type is associated with a specific HTTP status code defined in your OpenAPI specification.
+
+### Parameter Validation
+
+The generated code automatically validates:
+- **Required parameters**: Returns HTTP 400 if missing
+- **Type conversion**: Returns HTTP 400 if parameter cannot be converted to expected type
+- **JSON parsing**: Returns HTTP 400 if request body is invalid JSON
+
+Custom validation logic should be implemented in your handler methods.
+
+### Working with Optional Parameters
+
+Optional parameters and model fields use `std::optional`:
+
+```cpp
+void handleRequest(const RequestParams& params) override {
+    // Check if optional query parameter is present
+    if (params.m_optionalParam) {
+        auto value = *params.m_optionalParam;  // Dereference to get value
+        // Use value...
+    }
+    
+    // Check if optional request body is present
+    if (params.m_request) {
+        auto body = *params.m_request;  // Dereference to get body
+        // Use body...
+    }
+}
+```
+
+## Advanced Features
+
+### Parameter Serialization Styles
+
+The generator supports various parameter serialization styles as defined in OpenAPI:
+
+- **simple**: Comma-separated values (default for path/header)
+- **form**: Ampersand-separated values (default for query)
+- **spaceDelimited**: Space-separated values
+- **pipeDelimited**: Pipe-separated values
+- **deepObject**: Nested object notation for query parameters
+
+These are automatically handled during parameter parsing.
+
+### Union Types (anyOf/oneOf)
+
+When your OpenAPI spec uses `anyOf` or `oneOf`, the generated code uses `std::variant`:
+
+```cpp
+// OpenAPI: { "anyOf": [{"type": "string"}, {"type": "number"}] }
+using MyUnionType = std::variant<std::string, double>;
+
+// In your model:
+MyUnionType value;
+
+// Use std::visit to handle different types:
+std::visit([](const auto& v) {
+    using T = std::decay_t<decltype(v)>;
+    if constexpr (std::is_same_v<T, std::string>) {
+        std::cout << "String: " << v << std::endl;
+    } else if constexpr (std::is_same_v<T, double>) {
+        std::cout << "Number: " << v << std::endl;
+    }
+}, value);
+```
+
+### HATEOAS Links
+
+If your API responses include HATEOAS links, they are automatically generated in the response JSON:
+
+```json
+{
+  "data": { ... },
+  "_links": {
+    "self": { "href": "/users/123", "method": "GET" },
+    "edit": { "href": "/users/123", "method": "PUT" },
+    "delete": { "href": "/users/123", "method": "DELETE" }
+  }
 }
 ```
 
@@ -507,17 +583,8 @@ if (model.getOptionalField()) {
 
 - [cpp-httplib Documentation](https://github.com/yhirose/cpp-httplib)
 - [nlohmann/json Documentation](https://github.com/nlohmann/json)
-- [OpenAPI Generator Documentation](https://openapi-generator.tech/docs/generators/)
-```cpp
-if (model.getOptionalField()) {
-    // Field is present
-    auto value = *model.getOptionalField();
-} else {
-    // Field is not present
-}
-```
-
-## Additional Resources
+- [OpenAPI Generator Documentation](https://openapi-generator.tech/docs/generators/cpp-httplib-server)
+- [OpenAPI Specification](https://swagger.io/specification/)
 
 - [cpp-httplib Documentation](https://github.com/yhirose/cpp-httplib)
 - [nlohmann/json Documentation](https://github.com/nlohmann/json)

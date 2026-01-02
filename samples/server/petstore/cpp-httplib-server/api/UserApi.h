@@ -6,18 +6,22 @@
 
 #pragma once
 
-#include "models/User.h"
-
 #include <httplib.h>
 #include <variant>
 #include <optional>
-namespace sample::openapi::api {
+
+#include "models/User.h"
+
+namespace api {
 class User {
 public:
     User() = default;
     virtual ~User() = default;
+    /**
+     * @brief Register all routes for this API
+     * @param svr The httplib::Server instance to register routes on
+     */
     void registerRoutes(httplib::Server& svr);
-
     // =========================
     // ===== Request types =====
     // =========================
@@ -27,123 +31,90 @@ public:
     */
     struct UserPostRequest
     {
-        std::optional<models::User> m_request;
-        // Query Params not available
-        // Header Params not available
+        std::optional<models::User> m_request; //Request Body
     };
 
-
     /**
-    * @brief Request type for handlePostForCreateWithArray.
+    * @brief Request type for handleDeleteForUserusername.
     */
-    struct CreateWithArrayPostRequest
+    struct UserusernameDeleteRequest
     {
-        std::optional<models::User> m_request;
-        // Query Params not available
-        // Header Params not available
+
+        std::string m_username; //PathParams (always required)
     };
 
-
     /**
-    * @brief Request type for handlePostForCreateWithList.
+    * @brief Request type for handleGetForUserusername.
     */
-    struct CreateWithListPostRequest
+    struct UserusernameGetRequest
     {
-        std::optional<models::User> m_request;
-        // Query Params not available
-        // Header Params not available
+
+        std::string m_username; //PathParams (always required)
     };
 
-
     /**
-    * @brief Request type for handleGetForLogin.
+    * @brief Request type for handlePutForUserusername.
     */
-    struct LoginGetRequest
+    struct UserusernamePutRequest
     {
-        // No Schema Types defined
-        std::string m_username;std::string m_password;
-        // Header Params not available
+        std::optional<models::User> m_request; //Request Body
+        std::string m_username; //PathParams (always required)
     };
 
+    // ==========================
+    // ===== Response types =====
+    // ==========================
 
     /**
-    * @brief Request type for handlePutForUsername.
+    * @brief Response type for handlePostForUser.
     */
-    struct UsernamePutRequest
-    {
-        std::optional<models::User> m_request;
-        // Query Params not available
-        // Header Params not available
-    };
-
-
+    using UserPostResponse = std::variant<
+                                        models::User>;
 
     /**
-    * @brief Response type for handleGetForUsername.
+    * @brief Response type for handleGetForUserusername.
     */
-    using UsernameGetResponse = std::variant<
-                                 models::User>;
-
-
-    /**
-    * @brief Response type for handleGetForLogin.
-    */
-    using LoginGetResponse = std::variant<
-                                 std::string>;
-
+    using UserusernameGetResponse = std::variant<
+                                        models::User>;
     // ============================================================
     // ===== Pure virtual functions to be handled by the user =====
     // ============================================================
     /**
      * UserPostRequest - struct containing all the query parameters and headers and schemas as available.
+     * @return UserPostResponse The response type returned by the handler.
      */
-    virtual void handlePostForUser(const UserPostRequest& params)=0;
+    virtual UserPostResponse handlePostForUser(const UserPostRequest& params)=0;
 
     /**
-     * CreateWithArrayPostRequest - struct containing all the query parameters and headers and schemas as available.
+     * UserusernameDeleteRequest - struct containing all the query parameters and headers and schemas as available.
      */
-    virtual void handlePostForCreateWithArray(const CreateWithArrayPostRequest& params)=0;
+    virtual void handleDeleteForUserusername(const UserusernameDeleteRequest& params)=0;
 
     /**
-     * CreateWithListPostRequest - struct containing all the query parameters and headers and schemas as available.
+     * UserusernameGetRequest - struct containing all the query parameters and headers and schemas as available.
+     * @return UserusernameGetResponse The response type returned by the handler.
      */
-    virtual void handlePostForCreateWithList(const CreateWithListPostRequest& params)=0;
+    virtual UserusernameGetResponse handleGetForUserusername(const UserusernameGetRequest& params)=0;
 
     /**
+     * UserusernamePutRequest - struct containing all the query parameters and headers and schemas as available.
      */
-    virtual void handleDeleteForUsername()=0;
-
-    /**
-     * @return UsernameGetResponse The response type returned by the handler.
-     */
-    virtual UsernameGetResponse handleGetForUsername()=0;
-
-    /**
-     * LoginGetRequest - struct containing all the query parameters and headers and schemas as available.
-     * @return LoginGetResponse The response type returned by the handler.
-     */
-    virtual LoginGetResponse handleGetForLogin(const LoginGetRequest& params)=0;
-
-    /**
-     */
-    virtual void handleGetForLogout()=0;
-
-    /**
-     * UsernamePutRequest - struct containing all the query parameters and headers and schemas as available.
-     */
-    virtual void handlePutForUsername(const UsernamePutRequest& params)=0;
+    virtual void handlePutForUserusername(const UserusernamePutRequest& params)=0;
 
 private:
     // ========================================
     // ===== Helper function declarations =====
     // ========================================
-    static UserPostRequest parseUserParams(const httplib::Request& req);
-    static CreateWithArrayPostRequest parseCreateWithArrayParams(const httplib::Request& req);
-    static CreateWithListPostRequest parseCreateWithListParams(const httplib::Request& req);
-    static void handleUsernameGetResponse(const UsernameGetResponse& result, httplib::Response& res);
-    static LoginGetRequest parseLoginParams(const httplib::Request& req);
-    static void handleLoginGetResponse(const LoginGetResponse& result, httplib::Response& res);
-    static UsernamePutRequest parseUsernameParams(const httplib::Request& req);
+    static bool parseUserParams(const httplib::Request& req, UserPostRequest& params, std::vector<std::string>& paramErrors);
+    void handleUserRequest(const httplib::Request& req, httplib::Response& res);
+    static void handleUserPostResponse(const UserPostResponse& result, httplib::Response& res);
+    static bool parseUserusernameParams(const httplib::Request& req, UserusernameDeleteRequest& params, std::vector<std::string>& paramErrors);
+    void handleUserusernameRequest(const httplib::Request& req, httplib::Response& res);
+    static bool parseUserusernameParams(const httplib::Request& req, UserusernameGetRequest& params, std::vector<std::string>& paramErrors);
+    void handleUserusernameRequest(const httplib::Request& req, httplib::Response& res);
+    static void handleUserusernameGetResponse(const UserusernameGetResponse& result, httplib::Response& res);
+    static bool parseUserusernameParams(const httplib::Request& req, UserusernamePutRequest& params, std::vector<std::string>& paramErrors);
+    void handleUserusernameRequest(const httplib::Request& req, httplib::Response& res);
 };
 
-} // namespace sample::openapi::api
+} // namespace api

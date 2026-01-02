@@ -5,246 +5,789 @@
 */
 
 #include "PetApi.h"
-
-constexpr int HTTP_RESPONSE_CODE_PET = 200;
-constexpr int HTTP_RESPONSE_CODE_PET_ERROR400 = 400;
-constexpr int HTTP_RESPONSE_CODE_PET_ERROR500 = 500;
-constexpr int HTTP_RESPONSE_CODE_PET_LIST = 200;
-constexpr int HTTP_RESPONSE_CODE_API_RESPONSE = 200;
+#include <sstream>
+#include <sstream>
 
 
-namespace sample::openapi::api {
-Pet::PetPostRequest Pet::parsePetParams(const httplib::Request& req) {
-    Pet::PetPostRequest params;
-    nlohmann::json json = nlohmann::json::parse(req.body);
-    params.m_request = models::Pet::fromJson(json);
-    return params;
+constexpr int HTTP_RESPONSE_CODE_PET = 201;
+constexpr int HTTP_RESPONSE_CODE_API_RESPONSE = 400;
+constexpr int HTTP_RESPONSE_CODE_COMPLEX_PARAMS_RESPONSE = 200;
+constexpr int HTTP_RESPONSE_CODE_NO_CONTENT = 204;
+constexpr int HTTP_RESPONSE_CODE_UNAUTHORIZED = 401;
+constexpr int HTTP_RESPONSE_CODE_INTERNAL_SERVER_ERROR = 500;
+
+namespace api {
+
+bool Pet::parsePetParams(const httplib::Request& req, Pet::PetPostRequest& params, std::vector<std::string>& paramErrors)
+{
+    std::vector<std::string> errors;
+    try
+    {
+        nlohmann::json json = nlohmann::json::parse(req.body);
+        params.m_request = models::Pet::fromJson(json);
+    }
+    catch (const std::exception& e)
+    {
+        errors.push_back("Invalid request body: " + std::string(e.what()));
+    }
+
+    // Return errors via out-parameter, return false if any errors
+    if (!errors.empty())
+    {
+        paramErrors = std::move(errors);
+        return false;
+    }
+    return true;
 }
-void Pet::handlePetPostResponse(const PetPostResponse& result, httplib::Response& res) {
-    std::visit([&](const auto& value) {
+void Pet::handlePetPostResponse(const PetPostResponse& result, httplib::Response& res)
+{
+    std::visit([&](const auto& value)
+    {
         using T = std::decay_t<decltype(value)>;
-//Success types
-        if constexpr (std::is_same_v<T, models::Pet>) {
+
+        // Success types
+        if constexpr (std::is_same_v<T, models::Pet>)
+        {
             res.status = HTTP_RESPONSE_CODE_PET;
-            res.set_content(value.toJson(value).dump(), "application/json");
+            nlohmann::json responseJson = models::Pet::toJson(value);
+            res.set_content(responseJson.dump(), "application/json");
         }
-
-// No Error types defined
-    }, result);
-}
-Pet::PetIdDeleteRequest Pet::parsePetIdParams(const httplib::Request& req) {
-    Pet::PetIdDeleteRequest params;
-    return params;
-}
-Pet::FindByStatusGetRequest Pet::parseFindByStatusParams(const httplib::Request& req) {
-    Pet::FindByStatusGetRequest params;
-    return params;
-}
-void Pet::handleFindByStatusGetResponse(const FindByStatusGetResponse& result, httplib::Response& res) {
-    std::visit([&](const auto& value) {
-        using T = std::decay_t<decltype(value)>;
-//Success types
-        if constexpr (std::is_same_v<T, models::Pet>) {
-            res.status = HTTP_RESPONSE_CODE_PET;
-            res.set_content(value.toJson(value).dump(), "application/json");
-        }
-
-// No Error types defined
-    }, result);
-}
-Pet::FindByTagsGetRequest Pet::parseFindByTagsParams(const httplib::Request& req) {
-    Pet::FindByTagsGetRequest params;
-    return params;
-}
-void Pet::handleFindByTagsGetResponse(const FindByTagsGetResponse& result, httplib::Response& res) {
-    std::visit([&](const auto& value) {
-        using T = std::decay_t<decltype(value)>;
-//Success types
-        if constexpr (std::is_same_v<T, models::Pet>) {
-            res.status = HTTP_RESPONSE_CODE_PET;
-            res.set_content(value.toJson(value).dump(), "application/json");
-        }
-//Error types
-        else if constexpr (std::is_same_v<T, models::PetError400>) {
-            res.status = HTTP_RESPONSE_CODE_PET_ERROR400;
-            res.set_content(value.toJson(value).dump(), "application/json");
-        }
-        else if constexpr (std::is_same_v<T, models::PetError500>) {
-            res.status = HTTP_RESPONSE_CODE_PET_ERROR500;
-            res.set_content(value.toJson(value).dump(), "application/json");
-        }
-
-    }, result);
-}
-void Pet::handlePetIdGetResponse(const PetIdGetResponse& result, httplib::Response& res) {
-    std::visit([&](const auto& value) {
-        using T = std::decay_t<decltype(value)>;
-//Success types
-        if constexpr (std::is_same_v<T, models::Pet>) {
-            res.status = HTTP_RESPONSE_CODE_PET;
-            res.set_content(value.toJson(value).dump(), "application/json");
-        }
-
-// No Error types defined
-    }, result);
-}
-Pet::ListGetRequest Pet::parseListParams(const httplib::Request& req) {
-    Pet::ListGetRequest params;
-    return params;
-}
-void Pet::handleListGetResponse(const ListGetResponse& result, httplib::Response& res) {
-    std::visit([&](const auto& value) {
-        using T = std::decay_t<decltype(value)>;
-//Success types
-        if constexpr (std::is_same_v<T, models::PetList>) {
-            res.status = HTTP_RESPONSE_CODE_PET_LIST;
-            res.set_content(value.toJson(value).dump(), "application/json");
-        }
-
-// No Error types defined
-    }, result);
-}
-Pet::PetPutRequest Pet::parsePetParams(const httplib::Request& req) {
-    Pet::PetPutRequest params;
-    nlohmann::json json = nlohmann::json::parse(req.body);
-    params.m_request = models::Pet::fromJson(json);
-    return params;
-}
-void Pet::handlePetPutResponse(const PetPutResponse& result, httplib::Response& res) {
-    std::visit([&](const auto& value) {
-        using T = std::decay_t<decltype(value)>;
-//Success types
-        if constexpr (std::is_same_v<T, models::Pet>) {
-            res.status = HTTP_RESPONSE_CODE_PET;
-            res.set_content(value.toJson(value).dump(), "application/json");
-        }
-
-// No Error types defined
-    }, result);
-}
-void Pet::handlePetIdUploadImagePostResponse(const PetIdUploadImagePostResponse& result, httplib::Response& res) {
-    std::visit([&](const auto& value) {
-        using T = std::decay_t<decltype(value)>;
-//Success types
-        if constexpr (std::is_same_v<T, models::ApiResponse>) {
+        // Error types
+        else if constexpr (std::is_same_v<T, models::ApiResponse>)
+        {
             res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
-            res.set_content(value.toJson(value).dump(), "application/json");
+            res.set_content(models::ApiResponse::toJson(value).dump(), "application/json");
         }
-
-// No Error types defined
     }, result);
 }
+bool Pet::parsePetComplexParams(const httplib::Request& req, Pet::PetComplexGetRequest& params, std::vector<std::string>& paramErrors)
+{
+    std::vector<std::string> errors;
 
-void Pet::registerRoutes(httplib::Server& svr) {
-    svr.Post("/pet", [this]([[maybe_unused]]const httplib::Request& req, httplib::Response& res) {
-        try {
-            auto params = parsePetParams(req);
-            auto result = handlePostForPet(params);
-            handlePetPostResponse(result, res);
-        } catch (const nlohmann::json::parse_error& e) {
-            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
-            res.set_content(errorJson.dump(), "application/json");
-        }  catch (const nlohmann::json::invalid_iterator& e) {
-            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
-            res.set_content(errorJson.dump(), "application/json");
-        } catch (const nlohmann::json::type_error& e) {
-            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
-            res.set_content(errorJson.dump(), "application/json");
-        }  catch (const nlohmann::json::out_of_range& e) {
-            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
-            res.set_content(errorJson.dump(), "application/json");
-        } catch (const nlohmann::json::other_error& e) {
-            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
-            res.set_content(errorJson.dump(), "application/json");
+    // Query Parameters - deepObj
+    if (req.has_param("deepObj"))
+    {
+        try
+        {
         }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid query parameter 'deepObj': " + std::string(e.what()));
+        }
+    }
+    else
+    {
+        // Use default value for optional parameter
+        params.m_deepObj = nullptr;
+    }
+    // Query Parameters - enumParam
+    if (req.has_param("enumParam"))
+    {
+        try
+        {
+        params.m_enumParam = (req.get_param_value("enumParam"));
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid query parameter 'enumParam': " + std::string(e.what()));
+        }
+    }
+    else
+    {
+        // Use default value for optional parameter
+        params.m_enumParam = "";
+    }
+    // Query Parameters - pipeArr
+    if (req.has_param("pipeArr"))
+    {
+        try
+        {
+        
+        // form/simple: multi-param or comma-separated
+        size_t count = req.get_param_value_count("pipeArr");
+        if (count > 1) {
+            for (size_t i = 0; i < count; ++i) {
+                auto val = req.get_param_value("pipeArr", i);
+                params.m_pipeArr.emplace_back(val);
+            }
+        } else if (count == 1) {
+            auto val = req.get_param_value("pipeArr", 0);
+            std::stringstream ss(val);
+            std::string item;
+            while (std::getline(ss, item, ',')) {
+                std::string trimmed = trim(item);
+                if (!trimmed.empty()) {
+                    params.m_pipeArr.emplace_back(trimmed);
+                }
+            }
+        }
+        
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid query parameter 'pipeArr': " + std::string(e.what()));
+        }
+    }
+    else
+    {
+        // Use default value for optional parameter
+        params.m_pipeArr = std::vector<std::string>();
+    }
+    // Query Parameters - spaceArr
+    if (req.has_param("spaceArr"))
+    {
+        try
+        {
+        
+        // form/simple: multi-param or comma-separated
+        size_t count = req.get_param_value_count("spaceArr");
+        if (count > 1) {
+            for (size_t i = 0; i < count; ++i) {
+                auto val = req.get_param_value("spaceArr", i);
+                params.m_spaceArr.emplace_back(val);
+            }
+        } else if (count == 1) {
+            auto val = req.get_param_value("spaceArr", 0);
+            std::stringstream ss(val);
+            std::string item;
+            while (std::getline(ss, item, ',')) {
+                std::string trimmed = trim(item);
+                if (!trimmed.empty()) {
+                    params.m_spaceArr.emplace_back(trimmed);
+                }
+            }
+        }
+        
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid query parameter 'spaceArr': " + std::string(e.what()));
+        }
+    }
+    else
+    {
+        // Use default value for optional parameter
+        params.m_spaceArr = std::vector<int>();
+    }
+
+    // Header Parameters - x-enum-header
+    if (!req.get_header_value("x-enum-header").empty())
+    {
+        try
+        {
+        params.m_xEnumHeader = (req.get_header_value("x-enum-header"));
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid header parameter 'x-enum-header': " + std::string(e.what()));
+        }
+    }
+    else
+    {
+        // Use default value for optional parameter
+        params.m_xEnumHeader = "";
+    }
+
+    // Cookie Parameters - cookieEnum
+    try
+    {
+        auto cookieHeader = req.get_header_value("Cookie");
+        if (!cookieHeader.empty())
+        {
+            std::string cookieValue;
+            std::string key = "cookieEnum=";
+            size_t start = cookieHeader.find(key);
+            if (start != std::string::npos)
+            {
+                start += key.length();
+                size_t end = cookieHeader.find(";", start);
+                if (end == std::string::npos) end = cookieHeader.length();
+                cookieValue = cookieHeader.substr(start, end - start);
+
+                params.m_cookieEnum = (cookieValue);
+            }
+        }
+        else
+        {
+            // Use default value for optional parameter
+            params.m_cookieEnum = "";
+        }
+    }
+    catch (const std::exception& e)
+    {
+        errors.push_back("Invalid cookie parameter 'cookieEnum': " + std::string(e.what()));
+    }
+
+    // Return errors via out-parameter, return false if any errors
+    if (!errors.empty())
+    {
+        paramErrors = std::move(errors);
+        return false;
+    }
+    return true;
+}
+void Pet::handlePetComplexGetResponse(const PetComplexGetResponse& result, httplib::Response& res)
+{
+    std::visit([&](const auto& value)
+    {
+        using T = std::decay_t<decltype(value)>;
+
+        // Success types
+        if constexpr (std::is_same_v<T, models::ComplexParamsResponse>)
+        {
+            res.status = HTTP_RESPONSE_CODE_COMPLEX_PARAMS_RESPONSE;
+            nlohmann::json responseJson = models::ComplexParamsResponse::toJson(value);
+            res.set_content(responseJson.dump(), "application/json");
+        }
+    }, result);
+}
+bool Pet::parsePetpetIdParams(const httplib::Request& req, Pet::PetpetIdDeleteRequest& params, std::vector<std::string>& paramErrors)
+{
+    std::vector<std::string> errors;
+
+    // Query Parameters - api_key
+    if (req.has_param("api_key"))
+    {
+        try
+        {
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid query parameter 'api_key': " + std::string(e.what()));
+        }
+    }
+    else
+    {
+        // Use default value for optional parameter
+        params.m_apiKey = "";
+    }
+
+    // Path Parameters - petId (index: 1)
+    try
+    {
+        params.m_petId = std::stoll(req.matches[1]);
+        // TODO: Handle style/explode/allowReserved for path params
+    }
+    catch (const std::exception& e)
+    {
+        errors.push_back("Invalid path parameter 'petId': " + std::string(e.what()));
+    }
+
+    // Return errors via out-parameter, return false if any errors
+    if (!errors.empty())
+    {
+        paramErrors = std::move(errors);
+        return false;
+    }
+    return true;
+}
+bool Pet::parsePetFindByStatusParams(const httplib::Request& req, Pet::PetFindByStatusGetRequest& params, std::vector<std::string>& paramErrors)
+{
+    std::vector<std::string> errors;
+
+    // Query Parameters - status
+    if (req.has_param("status"))
+    {
+        try
+        {
+        params.m_status = (req.get_param_value("status"));
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid query parameter 'status': " + std::string(e.what()));
+        }
+    }
+
+    // Return errors via out-parameter, return false if any errors
+    if (!errors.empty())
+    {
+        paramErrors = std::move(errors);
+        return false;
+    }
+    return true;
+}
+void Pet::handlePetFindByStatusGetResponse(const PetFindByStatusGetResponse& result, httplib::Response& res)
+{
+    std::visit([&](const auto& value)
+    {
+        using T = std::decay_t<decltype(value)>;
+
+        // Success types
+        if constexpr (std::is_same_v<T, models::Pet>)
+        {
+            res.status = HTTP_RESPONSE_CODE_PET;
+            nlohmann::json responseJson = models::Pet::toJson(value);
+            res.set_content(responseJson.dump(), "application/json");
+        }
+    }, result);
+}
+bool Pet::parsePetFindByTagsParams(const httplib::Request& req, Pet::PetFindByTagsGetRequest& params, std::vector<std::string>& paramErrors)
+{
+    std::vector<std::string> errors;
+
+    // Query Parameters - tags
+    if (req.has_param("tags"))
+    {
+        try
+        {
+        
+        // form/simple: multi-param or comma-separated
+        size_t count = req.get_param_value_count("tags");
+        if (count > 1) {
+            for (size_t i = 0; i < count; ++i) {
+                auto val = req.get_param_value("tags", i);
+                params.m_tags.emplace_back(val);
+            }
+        } else if (count == 1) {
+            auto val = req.get_param_value("tags", 0);
+            std::stringstream ss(val);
+            std::string item;
+            while (std::getline(ss, item, ',')) {
+                std::string trimmed = trim(item);
+                if (!trimmed.empty()) {
+                    params.m_tags.emplace_back(trimmed);
+                }
+            }
+        }
+        
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid query parameter 'tags': " + std::string(e.what()));
+        }
+    }
+
+    // Return errors via out-parameter, return false if any errors
+    if (!errors.empty())
+    {
+        paramErrors = std::move(errors);
+        return false;
+    }
+    return true;
+}
+void Pet::handlePetFindByTagsGetResponse(const PetFindByTagsGetResponse& result, httplib::Response& res)
+{
+    std::visit([&](const auto& value)
+    {
+        using T = std::decay_t<decltype(value)>;
+
+        // Success types
+        if constexpr (std::is_same_v<T, models::Pet>)
+        {
+            res.status = HTTP_RESPONSE_CODE_PET;
+            nlohmann::json responseJson = models::Pet::toJson(value);
+            res.set_content(responseJson.dump(), "application/json");
+        }
+    }, result);
+}
+bool Pet::parsePetpetIdParams(const httplib::Request& req, Pet::PetpetIdGetRequest& params, std::vector<std::string>& paramErrors)
+{
+    std::vector<std::string> errors;
+
+    // Header Parameters - customHeader
+    if (!req.get_header_value("customHeader").empty())
+    {
+        try
+        {
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid header parameter 'customHeader': " + std::string(e.what()));
+        }
+    }
+    else
+    {
+        // Use default value for optional parameter
+        params.m_customHeader = "";
+    }
+
+    // Path Parameters - petId (index: 1)
+    try
+    {
+        params.m_petId = std::stoll(req.matches[1]);
+        // TODO: Handle style/explode/allowReserved for path params
+    }
+    catch (const std::exception& e)
+    {
+        errors.push_back("Invalid path parameter 'petId': " + std::string(e.what()));
+    }
+
+    // Cookie Parameters - cookieParam
+    try
+    {
+        auto cookieHeader = req.get_header_value("Cookie");
+        if (!cookieHeader.empty())
+        {
+            std::string cookieValue;
+            std::string key = "cookieParam=";
+            size_t start = cookieHeader.find(key);
+            if (start != std::string::npos)
+            {
+                start += key.length();
+                size_t end = cookieHeader.find(";", start);
+                if (end == std::string::npos) end = cookieHeader.length();
+                cookieValue = cookieHeader.substr(start, end - start);
+
+            }
+        }
+        else
+        {
+            // Use default value for optional parameter
+            params.m_cookieParam = "";
+        }
+    }
+    catch (const std::exception& e)
+    {
+        errors.push_back("Invalid cookie parameter 'cookieParam': " + std::string(e.what()));
+    }
+
+    // Return errors via out-parameter, return false if any errors
+    if (!errors.empty())
+    {
+        paramErrors = std::move(errors);
+        return false;
+    }
+    return true;
+}
+void Pet::handlePetpetIdGetResponse(const PetpetIdGetResponse& result, httplib::Response& res)
+{
+    std::visit([&](const auto& value)
+    {
+        using T = std::decay_t<decltype(value)>;
+
+        // Success types
+        if constexpr (std::is_same_v<T, models::Pet>)
+        {
+            res.status = HTTP_RESPONSE_CODE_PET;
+            nlohmann::json responseJson = models::Pet::toJson(value);
+            res.set_content(responseJson.dump(), "application/json");
+        }
+        // Error types
+        else if constexpr (std::is_same_v<T, models::ApiResponse>)
+        {
+            res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+            res.set_content(models::ApiResponse::toJson(value).dump(), "application/json");
+        }
+        else if constexpr (std::is_same_v<T, models::ApiResponse>)
+        {
+            res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+            res.set_content(models::ApiResponse::toJson(value).dump(), "application/json");
+        }
+    }, result);
+}
+bool Pet::parsePetParams(const httplib::Request& req, Pet::PetPutRequest& params, std::vector<std::string>& paramErrors)
+{
+    std::vector<std::string> errors;
+    try
+    {
+        nlohmann::json json = nlohmann::json::parse(req.body);
+        params.m_request = models::Pet::fromJson(json);
+    }
+    catch (const std::exception& e)
+    {
+        errors.push_back("Invalid request body: " + std::string(e.what()));
+    }
+
+    // Return errors via out-parameter, return false if any errors
+    if (!errors.empty())
+    {
+        paramErrors = std::move(errors);
+        return false;
+    }
+    return true;
+}
+
+
+void Pet::handlePetRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+{
+    try
+    { 
+        Pet::PetPostRequest params;
+        std::vector<std::string> paramErrors;
+        if (!parsePetParams(req, params, paramErrors))
+        {
+            nlohmann::json errorJson = nlohmann::json::object();
+            errorJson["message"] = "Invalid parameters";
+            errorJson["errors"] = paramErrors;
+            res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+            res.set_content(errorJson.dump(), "application/json");
+            return;
+        }
+        auto result = handlePostForPet(params);
+        handlePetPostResponse(result, res);
+
+    }
+    catch (const nlohmann::json::parse_error& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Invalid JSON: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+    catch (const nlohmann::json::invalid_iterator& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Invalid JSON: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+    catch (const nlohmann::json::type_error& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Invalid JSON: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+    catch (const nlohmann::json::out_of_range& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Invalid JSON: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+    catch (const nlohmann::json::other_error& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Invalid JSON: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+}
+
+void Pet::handlePetComplexRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+{
+    try
+    { 
+        Pet::PetComplexGetRequest params;
+        std::vector<std::string> paramErrors;
+        if (!parsePetComplexParams(req, params, paramErrors))
+        {
+            nlohmann::json errorJson = nlohmann::json::object();
+            errorJson["message"] = "Invalid parameters";
+            errorJson["errors"] = paramErrors;
+            res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+            res.set_content(errorJson.dump(), "application/json");
+            return;
+        }
+        auto result = handleGetForPetComplex(params);
+        handlePetComplexGetResponse(result, res);
+
+    }
+    
+    catch (const std::exception& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Internal error: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_INTERNAL_SERVER_ERROR;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+}
+
+void Pet::handlePetpetIdRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+{
+    try
+    { 
+        Pet::PetpetIdDeleteRequest params;
+        std::vector<std::string> paramErrors;
+        if (!parsePetpetIdParams(req, params, paramErrors))
+        {
+            nlohmann::json errorJson = nlohmann::json::object();
+            errorJson["message"] = "Invalid parameters";
+            errorJson["errors"] = paramErrors;
+            res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+            res.set_content(errorJson.dump(), "application/json");
+            return;
+        }
+
+        handleDeleteForPetpetId(params);
+        res.status = HTTP_RESPONSE_CODE_NO_CONTENT;
+
+    }
+    
+    catch (const std::exception& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Internal error: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_INTERNAL_SERVER_ERROR;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+}
+
+void Pet::handlePetFindByStatusRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+{
+    try
+    { 
+        Pet::PetFindByStatusGetRequest params;
+        std::vector<std::string> paramErrors;
+        if (!parsePetFindByStatusParams(req, params, paramErrors))
+        {
+            nlohmann::json errorJson = nlohmann::json::object();
+            errorJson["message"] = "Invalid parameters";
+            errorJson["errors"] = paramErrors;
+            res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+            res.set_content(errorJson.dump(), "application/json");
+            return;
+        }
+        auto result = handleGetForPetFindByStatus(params);
+        handlePetFindByStatusGetResponse(result, res);
+
+    }
+    
+    catch (const std::exception& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Internal error: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_INTERNAL_SERVER_ERROR;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+}
+
+void Pet::handlePetFindByTagsRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+{
+    try
+    { 
+        Pet::PetFindByTagsGetRequest params;
+        std::vector<std::string> paramErrors;
+        if (!parsePetFindByTagsParams(req, params, paramErrors))
+        {
+            nlohmann::json errorJson = nlohmann::json::object();
+            errorJson["message"] = "Invalid parameters";
+            errorJson["errors"] = paramErrors;
+            res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+            res.set_content(errorJson.dump(), "application/json");
+            return;
+        }
+        auto result = handleGetForPetFindByTags(params);
+        handlePetFindByTagsGetResponse(result, res);
+
+    }
+    
+    catch (const std::exception& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Internal error: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_INTERNAL_SERVER_ERROR;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+}
+
+void Pet::handlePetpetIdRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+{
+    try
+    { 
+        Pet::PetpetIdGetRequest params;
+        std::vector<std::string> paramErrors;
+        if (!parsePetpetIdParams(req, params, paramErrors))
+        {
+            nlohmann::json errorJson = nlohmann::json::object();
+            errorJson["message"] = "Invalid parameters";
+            errorJson["errors"] = paramErrors;
+            res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+            res.set_content(errorJson.dump(), "application/json");
+            return;
+        }
+        auto result = handleGetForPetpetId(params);
+        handlePetpetIdGetResponse(result, res);
+
+    }
+    
+    catch (const std::exception& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Internal error: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_INTERNAL_SERVER_ERROR;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+}
+
+void Pet::handlePetRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+{
+    try
+    { 
+        Pet::PetPutRequest params;
+        std::vector<std::string> paramErrors;
+        if (!parsePetParams(req, params, paramErrors))
+        {
+            nlohmann::json errorJson = nlohmann::json::object();
+            errorJson["message"] = "Invalid parameters";
+            errorJson["errors"] = paramErrors;
+            res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+            res.set_content(errorJson.dump(), "application/json");
+            return;
+        }
+
+        handlePutForPet(params);
+        res.status = HTTP_RESPONSE_CODE_NO_CONTENT;
+
+    }
+    catch (const nlohmann::json::parse_error& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Invalid JSON: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+    catch (const nlohmann::json::invalid_iterator& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Invalid JSON: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+    catch (const nlohmann::json::type_error& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Invalid JSON: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+    catch (const nlohmann::json::out_of_range& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Invalid JSON: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+    catch (const nlohmann::json::other_error& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Invalid JSON: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+}
+
+
+void Pet::registerRoutes(httplib::Server& svr)
+{
+    svr.Post("/pet", [this]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    {
+        handlePetRequest(req, res);
     });
-    svr.Delete("/pet/{petId}", [this]([[maybe_unused]]const httplib::Request& req, httplib::Response& res) {
-        try {
-            auto params = parsePetIdParams(req);
-            auto result = handleDeleteForPetId(params);
-        } catch (const std::exception& e) {
-            nlohmann::json errorJson = { {"message", "Internal error: " + std::string(e.what())} };
-            res.set_content(errorJson.dump(), "application/json");
-        }
+    svr.Get("/pet/complex", [this]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    {
+        handlePetComplexRequest(req, res);
     });
-    svr.Get("/pet/findByStatus", [this]([[maybe_unused]]const httplib::Request& req, httplib::Response& res) {
-        try {
-            auto params = parseFindByStatusParams(req);
-            auto result = handleGetForFindByStatus(params);
-            handleFindByStatusGetResponse(result, res);
-        } catch (const std::exception& e) {
-            nlohmann::json errorJson = { {"message", "Internal error: " + std::string(e.what())} };
-            res.set_content(errorJson.dump(), "application/json");
-        }
+    svr.Delete("/pet/{petId}", [this]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    {
+        handlePetpetIdRequest(req, res);
     });
-    svr.Get("/pet/findByTags", [this]([[maybe_unused]]const httplib::Request& req, httplib::Response& res) {
-        try {
-            auto params = parseFindByTagsParams(req);
-            auto result = handleGetForFindByTags(params);
-            handleFindByTagsGetResponse(result, res);
-        } catch (const std::exception& e) {
-            nlohmann::json errorJson = { {"message", "Internal error: " + std::string(e.what())} };
-            res.set_content(errorJson.dump(), "application/json");
-        }
+    svr.Get("/pet/findByStatus", [this]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    {
+        handlePetFindByStatusRequest(req, res);
     });
-    svr.Get("/pet/{petId}", [this]([[maybe_unused]]const httplib::Request& req, httplib::Response& res) {
-        try {
-            auto result = handleGetForPetId();
-            handlePetIdGetResponse(result, res);
-        } catch (const std::exception& e) {
-            nlohmann::json errorJson = { {"message", "Internal error: " + std::string(e.what())} };
-            res.set_content(errorJson.dump(), "application/json");
-        }
+    svr.Get("/pet/findByTags", [this]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    {
+        handlePetFindByTagsRequest(req, res);
     });
-    svr.Get("/pet/list", [this]([[maybe_unused]]const httplib::Request& req, httplib::Response& res) {
-        try {
-            auto params = parseListParams(req);
-            auto result = handleGetForList(params);
-            handleListGetResponse(result, res);
-        } catch (const std::exception& e) {
-            nlohmann::json errorJson = { {"message", "Internal error: " + std::string(e.what())} };
-            res.set_content(errorJson.dump(), "application/json");
-        }
+    svr.Get("/pet/{petId}", [this]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    {
+        handlePetpetIdRequest(req, res);
     });
-    svr.Put("/pet", [this]([[maybe_unused]]const httplib::Request& req, httplib::Response& res) {
-        try {
-            auto params = parsePetParams(req);
-            auto result = handlePutForPet(params);
-            handlePetPutResponse(result, res);
-        } catch (const nlohmann::json::parse_error& e) {
-            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
-            res.set_content(errorJson.dump(), "application/json");
-        }  catch (const nlohmann::json::invalid_iterator& e) {
-            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
-            res.set_content(errorJson.dump(), "application/json");
-        } catch (const nlohmann::json::type_error& e) {
-            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
-            res.set_content(errorJson.dump(), "application/json");
-        }  catch (const nlohmann::json::out_of_range& e) {
-            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
-            res.set_content(errorJson.dump(), "application/json");
-        } catch (const nlohmann::json::other_error& e) {
-            nlohmann::json errorJson = { {"message", "Invalid JSON: " + std::string(e.what())} };
-            res.set_content(errorJson.dump(), "application/json");
-        }
-    });
-    svr.Post("/pet/{petId}", [this]([[maybe_unused]]const httplib::Request& req, httplib::Response& res) {
-        try {
-            auto result = handlePostForPetId();
-        } catch (const std::exception& e) {
-            nlohmann::json errorJson = { {"message", "Internal error: " + std::string(e.what())} };
-            res.set_content(errorJson.dump(), "application/json");
-        }
-    });
-    svr.Post("/pet/{petId}/uploadImage", [this]([[maybe_unused]]const httplib::Request& req, httplib::Response& res) {
-        try {
-            auto result = handlePostForPetIdUploadImage();
-            handlePetIdUploadImagePostResponse(result, res);
-        } catch (const std::exception& e) {
-            nlohmann::json errorJson = { {"message", "Internal error: " + std::string(e.what())} };
-            res.set_content(errorJson.dump(), "application/json");
-        }
+    svr.Put("/pet", [this]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    {
+        handlePetRequest(req, res);
     });
 }
 
-} // namespace sample::openapi::api
+} // namespace api
