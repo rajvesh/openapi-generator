@@ -7,7 +7,6 @@
 #pragma once
 // System headers
 #include <nlohmann/json.hpp>
-#include <cstdint>
 #include <string>
 
 
@@ -15,27 +14,24 @@
 namespace models {
 
 
-class DeepObjBaz
+class TestMultiplePathParameters200Response
 {
 public:
 
-    DeepObjBaz();
-    virtual ~DeepObjBaz() = default;
+    TestMultiplePathParameters200Response();
+    virtual ~TestMultiplePathParameters200Response() = default;
 
     // Getters and setters
-    [[nodiscard]] std::string getX() const;
-    void setX(const std::string& X);
-    [[nodiscard]] int getY() const;
-    void setY(const int& Y);
+    [[nodiscard]] std::string getMessage() const;
+    void setMessage(const std::string& message);
 
 
     // JSON serialization using NLOHMANN INTRUSIVE macro (must be inside class to access private members)
-    NLOHMANN_DEFINE_TYPE_INTRUSIVE(DeepObjBaz,
-         X, Y)
+    NLOHMANN_DEFINE_TYPE_INTRUSIVE(TestMultiplePathParameters200Response,
+         message)
 
 private:
-    std::string X;
-    int Y;
+    std::string message;
 };
 
 

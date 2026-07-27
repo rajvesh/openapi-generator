@@ -4,12 +4,12 @@
 * https://openapi-generator.tech
 * Do not edit the class manually.
 */
-#include "NullableExample.h"
+#include "TestMultiplePathParameters200Response.h"
 
 namespace models {
 
-NullableExample::NullableExample()
-: maybeString("")
+TestMultiplePathParameters200Response::TestMultiplePathParameters200Response()
+: message("")
 {
 }
 // =========================================
@@ -18,17 +18,17 @@ NullableExample::NullableExample()
 // ===================
 // ===== Getters =====
 // ===================
-std::string NullableExample::getMaybeString() const
+std::string TestMultiplePathParameters200Response::getMessage() const
 {
-    return maybeString;
+    return message;
 }
 
 // ===================
 // ===== Setters =====
 // ===================
-void NullableExample::setMaybeString(const std::string& maybeStringObj)
+void TestMultiplePathParameters200Response::setMessage(const std::string& messageObj)
 {
-    maybeString = maybeStringObj;
+    message = messageObj;
 }
 
 

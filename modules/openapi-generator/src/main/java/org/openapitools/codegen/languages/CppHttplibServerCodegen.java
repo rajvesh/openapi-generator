@@ -54,12 +54,11 @@ import org.slf4j.LoggerFactory;
 
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Operation;
+import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.PathItem;
 import io.swagger.v3.oas.models.media.MediaType;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.responses.ApiResponse;
-
-import static org.openapitools.codegen.CodegenConstants.*;
 
 /**
  * C++ HTTP Library Server Code Generator.
@@ -140,7 +139,7 @@ public class CppHttplibServerCodegen extends AbstractCppCodegen {
     public static final String ENUM_NAMESPACE = "enumNamespace";
     public static final String MODEL_SUFFIX = "models";
     public static final String API_SUFFIX = "api";
-    public static final String ENUM_SUFFIX = "enum";
+    public static final String ENUM_SUFFIX = "enums";
     public static final String INCLUDE_VARIANT = "#include <variant>";
     public static final String INCLUDE_OPTIONAL = "#include <optional>";
     public static final String HTTP_RESPONSE_PREFIX = "HTTP_RESPONSE_CODE_";
@@ -367,6 +366,12 @@ public class CppHttplibServerCodegen extends AbstractCppCodegen {
 
         objs.put("apiNamespace", apiNamespace);
 
+        String defaultModelNamespace = (String) additionalProperties.get(MODEL_NAMESPACE);
+        if (defaultModelNamespace == null || defaultModelNamespace.isEmpty()) {
+            defaultModelNamespace = MODEL_SUFFIX.toLowerCase(Locale.ROOT);
+            additionalProperties.put(MODEL_NAMESPACE, defaultModelNamespace);
+        }
+
         // Build a lookup map: PascalCase className -> modelNamespace
         Map<String, String> modelNamespaceMap = new HashMap<>();
         for (ModelMap modelMap : allModels) {
@@ -585,6 +590,13 @@ public class CppHttplibServerCodegen extends AbstractCppCodegen {
             op.vendorExtensions.put("headerParams", op.headerParams);
             op.vendorExtensions.put("pathParams", op.pathParams);
             op.vendorExtensions.put("cookieParams", op.cookieParams);
+
+            // Keep original path for generator internals and expose a route-safe path for httplib template use.
+            if (op.path != null) {
+                op.vendorExtensions.put("httplibPath", op.path.replaceAll("\\{[^/}]+\\}", "([^/]+)"));
+            } else {
+                op.vendorExtensions.put("httplibPath", op.path);
+            }
 
             // Process security requirements
             processSecurityRequirements(op);
@@ -1306,9 +1318,9 @@ public class CppHttplibServerCodegen extends AbstractCppCodegen {
                         var.vendorExtensions.put("isOptionalEnum", true);
                     } else {
                         // Required enum: Use first value which is always UNSPECIFIED (added by setEnumVendorExtensions)
-                        if (var.allowableValues != null && var.allowableValues.containsKey(ENUM_VALUES)) {
+                        if (var.allowableValues != null && var.allowableValues.containsKey("values")) {
                             @SuppressWarnings("unchecked")
-                            List<Object> values = (List<Object>) var.allowableValues.get(ENUM_VALUES);
+                            List<Object> values = (List<Object>) var.allowableValues.get("values");
                             if (values != null && !values.isEmpty()) {
                                 // First value is always safe (UNSPECIFIED) after setEnumVendorExtensions
                                 String enumIdentifier = values.get(0).toString();
@@ -1545,9 +1557,18 @@ public class CppHttplibServerCodegen extends AbstractCppCodegen {
     @Override
     @SuppressWarnings({"rawtypes", "unchecked"})
     public CodegenModel fromModel(String name, Schema schema) {
-        // Use schema title if available for better naming
+        // Use schema title if available for better naming, but only for anonymous/inline
+        // schemas. Named component schemas (e.g. "Category", "Pet") must keep their
+        // original name even if the spec author added a human-readable "title" for
+        // documentation purposes (e.g. title: "a Pet", "Pet category"), otherwise the
+        // generated class name would no longer match the includes/imports/file names
+        // that reference the schema by its actual component name, breaking compilation.
+        boolean isNamedComponentSchema = name != null && this.openAPI != null
+                && this.openAPI.getComponents() != null
+                && this.openAPI.getComponents().getSchemas() != null
+                && this.openAPI.getComponents().getSchemas().containsKey(name);
         String modelName = name;
-        if (schema.getTitle() != null && !schema.getTitle().isEmpty()) {
+        if (!isNamedComponentSchema && schema.getTitle() != null && !schema.getTitle().isEmpty()) {
             modelName = schema.getTitle();
         } else if (name != null && (name.startsWith("object") || name.contains("inline_object"))) {
             // Try to generate a better name for inline objects
@@ -1683,6 +1704,156 @@ public class CppHttplibServerCodegen extends AbstractCppCodegen {
         return model;
     }
 
+        private void setEnumVendorExtensionsForParameter(CodegenParameter parameter) {
+        if (parameter == null) {
+            return;
+        }
+        if (parameter.allowableValues == null && (parameter._enum == null || parameter._enum.isEmpty())) {
+            return;
+        }
+
+        String baseName = (parameter.baseName != null && !parameter.baseName.isEmpty())
+                ? parameter.baseName
+                : parameter.paramName;
+        String shortEnumName = toPascalCase(baseName) + "Enum";
+        // Use paramName (already a valid, camelCase C++ identifier) rather than the raw
+        // baseName for the helper function names, since baseName may contain characters
+        // that are not valid in C++ identifiers (e.g. header names like "X-Status").
+        String helperBaseName = (parameter.paramName != null && !parameter.paramName.isEmpty())
+                ? parameter.paramName
+                : camelize(baseName, true);
+        List<String> convertedValues = computeEnumVendorExtensions(
+                helperBaseName, parameter._enum, parameter.allowableValues, parameter.vendorExtensions, shortEnumName);
+
+        if (parameter.allowableValues == null) {
+            parameter.allowableValues = new HashMap<>();
+        }
+        // parameter.allowableValues.put("values", convertedValues);
+
+        // For standalone (non-array) enum parameters, the datatype itself should be the enum type.
+        parameter.datatypeWithEnum = shortEnumName;
+        parameter.dataType = shortEnumName;
+
+        Object enumVars = parameter.allowableValues.get("enumVars");
+        if (enumVars != null) {
+            parameter.vendorExtensions.put("x-enum-values", enumVars);
+        }
+    }
+
+    private void setEnumVendorExtensionsForParameter(CodegenProperty property) {
+        if (property == null) {
+            return;
+        }
+        if (property.allowableValues == null && (property._enum == null || property._enum.isEmpty())) {
+            return;
+        }
+
+        String baseName = (property.baseName != null && !property.baseName.isEmpty())
+                ? property.baseName
+                : property.name;
+        String shortEnumName = toPascalCase(baseName) + "Enum";
+        // Use property.name (already a valid, camelCase C++ identifier) rather than the raw
+        // baseName for the helper function names, since baseName may contain characters
+        // that are not valid in C++ identifiers.
+        String helperBaseName = (property.name != null && !property.name.isEmpty())
+                ? property.name
+                : camelize(baseName, true);
+        List<String> convertedValues = computeEnumVendorExtensions(
+                helperBaseName, property._enum, property.allowableValues, property.vendorExtensions, shortEnumName);
+
+        if (property.allowableValues == null) {
+            property.allowableValues = new HashMap<>();
+        }
+        // property.allowableValues.put("values", convertedValues);
+
+        property.enumName = shortEnumName;
+        property.datatypeWithEnum = shortEnumName;
+
+        Object enumVars = property.allowableValues.get("enumVars");
+        if (enumVars != null) {
+            property.vendorExtensions.put("x-enum-values", enumVars);
+        }
+    }
+
+    /**
+     * Shared enum metadata computation used by both {@code setEnumVendorExtensionsForParameter}
+     * overloads. Derives C++ enum identifiers from the raw OpenAPI enum values (see
+     * {@link #setEnumVendorExtensions(Object, CodegenModel)} for naming convention details)
+     * and populates {@code vendorExtensions} with {@code enumName}, {@code values},
+     * {@code enumCases}, {@code enumFromStringHelper}, {@code enumToStringHelper}, and
+     * {@code shortEnumName}.
+     *
+     * @param baseName       the base name of the parameter/property (used for helper naming)
+     * @param rawEnumValues  the raw enum values, if already available
+     * @param allowableValues the allowableValues map, used as a fallback source of enum values
+     * @param vendorExtensions the vendorExtensions map to populate
+     * @param shortEnumName  the already-computed short enum type name
+     * @return the list of converted (C++ identifier) enum values
+     */
+    private List<String> computeEnumVendorExtensions(String baseName, List<String> rawEnumValues,
+            Map<String, Object> allowableValues, Map<String, Object> vendorExtensions, String shortEnumName) {
+        List<String> enumValues = rawEnumValues;
+        if ((enumValues == null || enumValues.isEmpty()) && allowableValues != null) {
+            enumValues = new ArrayList<>();
+            for (Object val : allowableValues.values()) {
+                enumValues.add(val != null ? val.toString() : "");
+            }
+        }
+
+        boolean hasUnknownValue = false;
+        if (enumValues != null && !enumValues.isEmpty()) {
+            for (String enumVal : enumValues) {
+                String upperVal = enumVal.toUpperCase(Locale.ROOT);
+                if (upperVal.equals("UNKNOWN") || upperVal.equals("UNSPECIFIED")
+                        || upperVal.equals("NONE") || upperVal.equals("UNDEFINED")) {
+                    hasUnknownValue = true;
+                    break;
+                }
+            }
+        }
+
+        if (!hasUnknownValue) {
+            if (enumValues == null) {
+                enumValues = new ArrayList<>();
+            }
+            enumValues.add(0, "UNSPECIFIED");
+        }
+
+        List<String> convertedValues = new ArrayList<>();
+        if (enumValues != null && !enumValues.isEmpty()) {
+            for (String enumVal : enumValues) {
+                String convertedVal = enumVal;
+                if (enumVal.matches("^[0-9]+$")) {
+                    convertedVal = "_" + enumVal;
+                }
+                convertedVal = convertedVal.toUpperCase(Locale.ROOT);
+                convertedValues.add(convertedVal);
+            }
+        }
+
+        vendorExtensions.put("isEnum", true);
+        vendorExtensions.put("enumName", shortEnumName);
+        vendorExtensions.put("shortEnumName", shortEnumName);
+        vendorExtensions.put("values", convertedValues);
+        vendorExtensions.put("enumFromStringHelper", baseName + ENUM_FROM_STRING);
+        vendorExtensions.put("enumToStringHelper", baseName + ENUM_TO_STRING);
+
+        List<Map<String, String>> enumCases = new ArrayList<>();
+        if (enumValues != null) {
+            for (int i = 0; i < enumValues.size(); i++) {
+                String originalVal = enumValues.get(i);
+                String convertedVal = convertedValues.get(i);
+                Map<String, String> caseMap = new HashMap<>();
+                caseMap.put("name", convertedVal);
+                caseMap.put("value", originalVal);
+                caseMap.put("enumName", shortEnumName);
+                enumCases.add(caseMap);
+            }
+        }
+        vendorExtensions.put("enumCases", enumCases);
+
+        return convertedValues;
+    }
     @Override
     public void postProcessModelProperty(CodegenModel model, CodegenProperty property) {
         super.postProcessModelProperty(model, property);
@@ -1931,7 +2102,7 @@ public class CppHttplibServerCodegen extends AbstractCppCodegen {
      */
     public String toModelNamespace(String modelNamespace) {
         if (modelNamespace == null || modelNamespace.isEmpty()) {
-            return toPascalCase(MODEL_SUFFIX);
+            return MODEL_SUFFIX;
         }
         return modelNamespace;
     }
@@ -2116,14 +2287,14 @@ public class CppHttplibServerCodegen extends AbstractCppCodegen {
         // Set Enum namespace
         String enumNamespace = (String) additionalProperties.get(ENUM_NAMESPACE);
         if (enumNamespace == null || enumNamespace.isEmpty()) {
-            enumNamespace = toPascalCase(ENUM_SUFFIX);
+            enumNamespace = ENUM_SUFFIX;
         }
         additionalProperties.put(ENUM_NAMESPACE, enumNamespace);
 
         // Set API namespace for templates (needed for AuthenticationManager and other supporting files)
         String apiNamespaceValue = (String) additionalProperties.get(API_NAMESPACE);
         if (apiNamespaceValue == null || apiNamespaceValue.isEmpty()) {
-            apiNamespaceValue = toPascalCase(API_SUFFIX);
+            apiNamespaceValue = API_SUFFIX.toLowerCase(Locale.ROOT);
         }
         additionalProperties.put(API_NAMESPACE, apiNamespaceValue);
 
@@ -2140,6 +2311,24 @@ public class CppHttplibServerCodegen extends AbstractCppCodegen {
             }
         }
 
+    }
+
+    /**
+     * Convenience overload used by tests to build a CodegenParameter without
+     * having to manage an imports Set explicitly. Mirrors the processing that
+     * normally happens later in the pipeline (postProcessParameter / enum and
+     * array vendor extension setup), since callers using this overload expect
+     * a fully-processed CodegenParameter as if it went through fromOperation().
+     *
+     * @param parameter the OpenAPI parameter
+     * @param operation the owning operation (unused directly, kept for API compatibility)
+     * @return the generated and fully-processed CodegenParameter
+     */
+    public CodegenParameter fromParameter(Parameter parameter, Operation operation) {
+        CodegenParameter codegenParameter = fromParameter(parameter, new HashSet<>());
+        postProcessParameter(codegenParameter);
+        setParameterTypeFlags(codegenParameter);
+        return codegenParameter;
     }
 
     /**
@@ -2179,8 +2368,10 @@ public class CppHttplibServerCodegen extends AbstractCppCodegen {
     /**
      * Sets C++ type flags for a parameter for use in Mustache templates.
      * Handles arrays, enums, and primitives with proper vendor extensions.
+     * Public (rather than private) so it can be exercised directly by tests
+     * in other packages without resorting to reflection.
      */
-    private void setParameterTypeFlags(CodegenParameter param) {
+    public void setParameterTypeFlags(CodegenParameter param) {
         if (param == null) {
             return;
         }
@@ -2197,13 +2388,15 @@ public class CppHttplibServerCodegen extends AbstractCppCodegen {
         if (param.isArray) {
             setArrayVendorExtensions(param, param.nameInPascalCase, param.baseName, null);
         } else if (param.isEnum) {
-            // Handle enum parameters
-            param.vendorExtensions.put("isEnum", true);
-            param.vendorExtensions.put("enumType", toPascalCase(param.baseType) + "Enum");
-            param.vendorExtensions.put("enumFromStringHelper", param.nameInPascalCase + ENUM_FROM_STRING);
-            param.vendorExtensions.put("enumToStringHelper", param.nameInPascalCase + ENUM_TO_STRING);
+            // Derive full enum metadata for inline enum parameters
+            setEnumVendorExtensionsForParameter(param); //setEnumVendorExtensionsForParameter(codegenParameter);
         } else {
             // Set primitive type flags
+            setPrimitiveTypes(param);
+        }
+
+        // Ensure primitive flags are also set for enum parameters
+        if (param.isEnum) {
             setPrimitiveTypes(param);
         }
     }
@@ -2242,10 +2435,14 @@ public class CppHttplibServerCodegen extends AbstractCppCodegen {
             // ALWAYS set primitive type flags for items (needed for type conversion in templates)
             setPrimitiveTypes(items);
 
-            if (items.isEnum) {
+            // Standalone query/header parameters (model == null) never get a generated
+            // C++ enum class - only model properties do. Treating array items of such
+            // parameters as enums here would emit calls to enum helper functions that
+            // are never declared, breaking compilation. So only honor items.isEnum when
+            // we're processing a model property.
+            if (items.isEnum && model != null) {
                 // Set up enum vendor extensions for items (needed for enumCases and conversion helpers)
-                // Only call if model is available (not for parameters)
-                if (model != null) {
+                if (varObj instanceof CodegenProperty) {
                     setEnumVendorExtensions(items, model);
                 }
 
@@ -2358,7 +2555,7 @@ public class CppHttplibServerCodegen extends AbstractCppCodegen {
      * unmodified OpenAPI enum values: numeric values are prefixed with an underscore
      * (e.g. "200" -> "_200", since C++ identifiers cannot start with a digit) and the
      * result is upper-cased for C++ enum naming conventions (clang style). The original
-     * spec value (e.g. "available") is kept as-is in {@code enumCases[i].value} so that
+     * spec value (e.g., "available") is kept as-is in {@code enumCases[i].value} so that
      * {@code EnumToString}/{@code EnumFromString} serialize using the value defined in
      * the OpenAPI document rather than the derived C++ identifier.
      */
@@ -2405,8 +2602,8 @@ public class CppHttplibServerCodegen extends AbstractCppCodegen {
         if (enumValues != null && !enumValues.isEmpty()) {
             for (String enumVal : enumValues) {
                 String upperVal = enumVal.toUpperCase(Locale.ROOT);
-                if (upperVal.equals("UNKNOWN") || upperVal.equals("UNSPECIFIED") ||
-                        upperVal.equals("NONE") || upperVal.equals("UNDEFINED")) {
+                if (upperVal.equals("UNKNOWN") || upperVal.equals("UNSPECIFIED")
+                        || upperVal.equals("NONE") || upperVal.equals("UNDEFINED")) {
                     hasUnknownValue = true;
                     break;
                 }
@@ -2438,14 +2635,15 @@ public class CppHttplibServerCodegen extends AbstractCppCodegen {
                 convertedValues.add(convertedVal);
             }
         } else {
-            LOGGER.warn("No enum values found for variable {} in model {}", var.name, model.classname);
+            LOGGER.warn("No enum values found for variable {}", var.name);
         }
 
-        var.vendorExtensions.put(ENUM_VALUES, convertedValues);
-        var._enum = convertedValues;  // Also set it on the var itself for Mustache access
-        var.allowableValues.put(ENUM_VALUES, convertedValues);  // Also update allowableValues for template
+        var.vendorExtensions.put("values", convertedValues);
+        if (var.allowableValues == null) {
+            var.allowableValues = new HashMap<>();
+        }
+        // var.allowableValues.put("values", convertedValues);
 
-        // Create enumCases for use in helper functions
         List<Map<String, String>> enumCases = new ArrayList<>();
         // Iterate through original enum values to maintain mapping between C++ identifiers and original JSON values
         if (enumValues != null) {
@@ -2453,8 +2651,8 @@ public class CppHttplibServerCodegen extends AbstractCppCodegen {
                 String originalVal = enumValues.get(i);  // Original value (e.g., "200")
                 String convertedVal = convertedValues.get(i);  // Converted C++ identifier (e.g., "_200")
                 Map<String, String> caseMap = new HashMap<>();
-                caseMap.put(ENUM_NAME, convertedVal);  // C++ enum identifier
-                caseMap.put(ENUM_VALUE, originalVal);  // Original JSON value
+                caseMap.put("name", convertedVal);  // C++ enum identifier
+                caseMap.put("value", originalVal);  // Original JSON value
                 caseMap.put("enumName", shortEnumName);  // Use short name
                 enumCases.add(caseMap);
             }

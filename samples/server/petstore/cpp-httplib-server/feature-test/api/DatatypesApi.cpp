@@ -24,13 +24,14 @@ constexpr int HTTP_RESPONSE_CODE_PRIMITIVE_TYPES = 200;
 constexpr int HTTP_RESPONSE_CODE_NO_CONTENT = 204;
 constexpr int HTTP_RESPONSE_CODE_BAD_REQUEST = 400;
 
-namespace api {
+namespace Api {
 
 using namespace models;
 
 bool Datatypes::parseDatatypesarraysPostParams(const httplib::Request& req, Datatypes::DatatypesarraysPostRequest& params, std::vector<std::string>& paramErrors)
 {
     std::vector<std::string> errors;
+
     if (!req.body.empty())
     {
         try
@@ -67,6 +68,7 @@ void Datatypes::handleDatatypesarraysPostResponse(const DatatypesarraysPostRespo
 bool Datatypes::parseDatatypesenumsPostParams(const httplib::Request& req, Datatypes::DatatypesenumsPostRequest& params, std::vector<std::string>& paramErrors)
 {
     std::vector<std::string> errors;
+
     if (!req.body.empty())
     {
         try
@@ -109,7 +111,7 @@ bool Datatypes::parseResponsesmultipleGetParams(const httplib::Request& req, Dat
     {
         try
         {
-            params.m_scenario = (req.get_param_value("scenario"));
+            params.m_scenario = ResponsesmultipleGetRequest::scenarioEnumFromString(req.get_param_value("scenario"));
         }
         catch (const std::exception& e)
         {
@@ -163,6 +165,7 @@ void Datatypes::handleResponsesmultipleGetResponse(const ResponsesmultipleGetRes
 bool Datatypes::parseNestedobjectsPostParams(const httplib::Request& req, Datatypes::NestedobjectsPostRequest& params, std::vector<std::string>& paramErrors)
 {
     std::vector<std::string> errors;
+
     if (!req.body.empty())
     {
         try
@@ -224,6 +227,7 @@ bool Datatypes::parseResponsesnocontentDeleteParams(const httplib::Request& req,
 bool Datatypes::parseNullableoptionalPostParams(const httplib::Request& req, Datatypes::NullableoptionalPostRequest& params, std::vector<std::string>& paramErrors)
 {
     std::vector<std::string> errors;
+
     if (!req.body.empty())
     {
         try
@@ -260,6 +264,7 @@ void Datatypes::handleNullableoptionalPostResponse(const NullableoptionalPostRes
 bool Datatypes::parseDatatypesprimitivesPostParams(const httplib::Request& req, Datatypes::DatatypesprimitivesPostRequest& params, std::vector<std::string>& paramErrors)
 {
     std::vector<std::string> errors;
+
     if (!req.body.empty())
     {
         try
@@ -687,4 +692,4 @@ void Datatypes::registerRoutes(httplib::Server& svr)
     });
 }
 
-} // namespace api
+} // namespace Api

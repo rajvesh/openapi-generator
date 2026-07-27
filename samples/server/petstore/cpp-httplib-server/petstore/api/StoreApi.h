@@ -8,13 +8,15 @@
 
 // System headers
 #include <httplib.h>
+#include <memory>
 #include <variant>
 #include <optional>
 
 // Project headers
 #include "models/Order.h"
 
-namespace api {
+namespace Api {
+    class AuthenticationManager;
 class Store {
 public:
     Store() = default;
@@ -22,8 +24,9 @@ public:
     /**
      * @brief Register all routes for this API
      * @param svr The httplib::Server instance to register routes on
+     * @param auth The AuthenticationManager for authentication (optional, defaults to nullptr)
      */
-    void registerRoutes(httplib::Server& svr);
+    void registerRoutes(httplib::Server& svr, std::shared_ptr<AuthenticationManager> auth = nullptr);
     // =========================
     // ===== Request types =====
     // =========================
@@ -33,8 +36,7 @@ public:
     */
     struct StoreorderorderIdDeleteRequest
     {
-
-        long m_orderId; //PathParams (always required)
+        std::string m_orderId; //PathParams (always required)
     };
 
     /**
@@ -42,7 +44,6 @@ public:
     */
     struct StoreorderorderIdGetRequest
     {
-
         long m_orderId; //PathParams (always required)
     };
 
@@ -54,6 +55,11 @@ public:
         models::Order m_request; //Request Body (required)
     };
 
+
+    /**
+    * @brief Response type for handleGetForStoreinventory.
+    */
+    using StoreinventoryGetResponse = int;
 
     /**
     * @brief Response type for handleGetForStoreorderorderId.
@@ -73,6 +79,11 @@ public:
     virtual void handleDeleteForStoreorderorderId(const StoreorderorderIdDeleteRequest& params)=0;
 
     /**
+     * @return StoreinventoryGetResponse The response type returned by the handler.
+     */
+    virtual StoreinventoryGetResponse handleGetForStoreinventory()=0;
+
+    /**
      * StoreorderorderIdGetRequest - struct containing all the query parameters and headers and schemas as available.
      * @return StoreorderorderIdGetResponse The response type returned by the handler.
      */
@@ -90,12 +101,18 @@ private:
     // ========================================
     static bool parseStoreorderorderIdDeleteParams(const httplib::Request& req, StoreorderorderIdDeleteRequest& params, std::vector<std::string>& paramErrors);
     void handleStoreorderorderIdDeleteRequest(const httplib::Request& req, httplib::Response& res);
+    void handleStoreinventoryGetRequest(const httplib::Request& req, httplib::Response& res, std::shared_ptr<AuthenticationManager> auth);
+    static void handleStoreinventoryGetResponse(const StoreinventoryGetResponse& result, httplib::Response& res);
     static bool parseStoreorderorderIdGetParams(const httplib::Request& req, StoreorderorderIdGetRequest& params, std::vector<std::string>& paramErrors);
     void handleStoreorderorderIdGetRequest(const httplib::Request& req, httplib::Response& res);
     static void handleStoreorderorderIdGetResponse(const StoreorderorderIdGetResponse& result, httplib::Response& res);
     static bool parseStoreorderPostParams(const httplib::Request& req, StoreorderPostRequest& params, std::vector<std::string>& paramErrors);
     void handleStoreorderPostRequest(const httplib::Request& req, httplib::Response& res);
     static void handleStoreorderPostResponse(const StoreorderPostResponse& result, httplib::Response& res);
+    static bool performAuthentication(
+        const httplib::Request& req,
+        std::shared_ptr<AuthenticationManager> auth,
+        httplib::Response& res);
 };
 
-} // namespace api
+} // namespace Api

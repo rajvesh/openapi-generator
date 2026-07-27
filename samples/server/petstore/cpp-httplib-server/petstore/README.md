@@ -1,4 +1,4 @@
-# cpp-httplib-server-petstore - C++ Server
+# cpp-httplib-server - C++ Server
 
 ## Overview
 
@@ -92,70 +92,6 @@ std::string jsonString = json.dump();
 // Deserialize from JSON
 auto parsedModel = models::Category::fromJson(nlohmann::json::parse(jsonString));
 ```
-#### models::ComplexParamsResponse
-
-```cpp
-// Create a model
-auto model = models::ComplexParamsResponse();
-model.setDeepObj(/* value */);  // Set deepObj
-model.setEnumParam(/* value */);  // Set enumParam
-model.setPipeArr(/* value */);  // Set pipeArr
-model.setSpaceArr(/* value */);  // Set spaceArr
-model.setXEnumHeader(/* value */);  // Set x-enum-header
-model.setCookieEnum(/* value */);  // Set cookieEnum
-
-// Serialize to JSON
-nlohmann::json json = models::ComplexParamsResponse::toJson(model);
-std::string jsonString = json.dump();
-
-// Deserialize from JSON
-auto parsedModel = models::ComplexParamsResponse::fromJson(nlohmann::json::parse(jsonString));
-```
-#### models::DeepObj
-
-```cpp
-// Create a model
-auto model = models::DeepObj();
-model.setFoo(/* value */);  // Set foo
-model.setBar(/* value */);  // Set bar
-model.setBaz(/* value */);  // Set baz
-
-// Serialize to JSON
-nlohmann::json json = models::DeepObj::toJson(model);
-std::string jsonString = json.dump();
-
-// Deserialize from JSON
-auto parsedModel = models::DeepObj::fromJson(nlohmann::json::parse(jsonString));
-```
-#### models::DeepObjBaz
-
-```cpp
-// Create a model
-auto model = models::DeepObjBaz();
-model.setX(/* value */);  // Set x
-model.setY(/* value */);  // Set y
-
-// Serialize to JSON
-nlohmann::json json = models::DeepObjBaz::toJson(model);
-std::string jsonString = json.dump();
-
-// Deserialize from JSON
-auto parsedModel = models::DeepObjBaz::fromJson(nlohmann::json::parse(jsonString));
-```
-#### models::NullableExample
-
-```cpp
-// Create a model
-auto model = models::NullableExample();
-model.setMaybeString(/* value */);  // Set maybeString
-
-// Serialize to JSON
-nlohmann::json json = models::NullableExample::toJson(model);
-std::string jsonString = json.dump();
-
-// Deserialize from JSON
-auto parsedModel = models::NullableExample::fromJson(nlohmann::json::parse(jsonString));
-```
 #### models::Order
 
 ```cpp
@@ -181,11 +117,11 @@ auto parsedModel = models::Order::fromJson(nlohmann::json::parse(jsonString));
 // Create a model
 auto model = models::Pet();
 model.setId(/* value */);  // Set id
+model.setCategory(/* value */);  // Set category
 model.setName(/* value */);  // Set name
 model.setPhotoUrls(/* value */);  // Set photoUrls
-model.setStatus(/* value */);  // Set status
-model.setCategory(/* value */);  // Set category
 model.setTags(/* value */);  // Set tags
+model.setStatus(/* value */);  // Set status
 
 // Serialize to JSON
 nlohmann::json json = models::Pet::toJson(model);
@@ -193,25 +129,6 @@ std::string jsonString = json.dump();
 
 // Deserialize from JSON
 auto parsedModel = models::Pet::fromJson(nlohmann::json::parse(jsonString));
-```
-#### models::PetOrCategory
-
-```cpp
-// Create a model
-auto model = models::PetOrCategory();
-model.setId(/* value */);  // Set id
-model.setName(/* value */);  // Set name
-model.setPhotoUrls(/* value */);  // Set photoUrls
-model.setStatus(/* value */);  // Set status
-model.setCategory(/* value */);  // Set category
-model.setTags(/* value */);  // Set tags
-
-// Serialize to JSON
-nlohmann::json json = models::PetOrCategory::toJson(model);
-std::string jsonString = json.dump();
-
-// Deserialize from JSON
-auto parsedModel = models::PetOrCategory::fromJson(nlohmann::json::parse(jsonString));
 ```
 #### models::Tag
 
@@ -263,7 +180,7 @@ Create a class that inherits from the generated base class:
 ```cpp
 #include "api/PetApi.h"
 
-class PetImpl : public api::Pet {
+class PetImpl : public Api::Pet {
 public:
     PetPostResponse handlePostForPet(const PetPostRequest& params) override {
         // Access request parameters:
@@ -273,26 +190,6 @@ public:
 
         // Return success response (HTTP HTTP_RESPONSE_CODE_PET):
         models::Pet successResponse;
-        // ... populate response ...
-        return successResponse;
-
-        // Or return error response (HTTP HTTP_RESPONSE_CODE_API_RESPONSE):
-        // models::ApiResponse errorResponse;
-        // return errorResponse;
-    }
-
-    PetcomplexGetResponse handleGetForPetcomplex(const PetcomplexGetRequest& params) override {
-        // Access request parameters:
-        // Query: params.m_deepObj (optional)
-        // Query: params.m_enumParam (optional)
-        // Query: params.m_pipeArr (optional)
-        // Query: params.m_spaceArr (optional)
-        // Header: params.m_xEnumHeader (optional)
-
-        // Implement your business logic here
-
-        // Return success response (HTTP HTTP_RESPONSE_CODE_COMPLEX_PARAMS_RESPONSE):
-        models::ComplexParamsResponse successResponse;
         // ... populate response ...
         return successResponse;
     }
@@ -329,7 +226,6 @@ public:
     PetpetIdGetResponse handleGetForPetpetId(const PetpetIdGetRequest& params) override {
         // Access request parameters:
         // Path: params.m_petId
-        // Header: params.m_customHeader (optional)
 
         // Implement your business logic here
 
@@ -337,15 +233,35 @@ public:
         models::Pet successResponse;
         // ... populate response ...
         return successResponse;
-
-        // Or return error response (HTTP HTTP_RESPONSE_CODE_API_RESPONSE):
-        // models::ApiResponse errorResponse;
-        // return errorResponse;
     }
 
-    void handlePutForPet(const PetPutRequest& params) override {
+    PetPutResponse handlePutForPet(const PetPutRequest& params) override {
+        // Access request parameters:
+        // Body: params.m_request (std::optional<models::Pet>)
+
+        // Implement your business logic here
+
+        // Return success response (HTTP HTTP_RESPONSE_CODE_PET):
+        models::Pet successResponse;
+        // ... populate response ...
+        return successResponse;
+    }
+
+    void handlePostForPetpetId(const PetpetIdPostRequest& params) override {
         // Access request parameters from params struct
         // Implement your logic here
+    }
+
+    PetpetIduploadImagePostResponse handlePostForPetpetIduploadImage(const PetpetIduploadImagePostRequest& params) override {
+        // Access request parameters:
+        // Path: params.m_petId
+
+        // Implement your business logic here
+
+        // Return success response (HTTP HTTP_RESPONSE_CODE_API_RESPONSE):
+        models::ApiResponse successResponse;
+        // ... populate response ...
+        return successResponse;
     }
 
 };
@@ -357,11 +273,21 @@ Create a class that inherits from the generated base class:
 ```cpp
 #include "api/StoreApi.h"
 
-class StoreImpl : public api::Store {
+class StoreImpl : public Api::Store {
 public:
     void handleDeleteForStoreorderorderId(const StoreorderorderIdDeleteRequest& params) override {
         // Access request parameters from params struct
         // Implement your logic here
+    }
+
+    StoreinventoryGetResponse handleGetForStoreinventory() override {
+
+        // Implement your business logic here
+
+        // Return success response (HTTP HTTP_RESPONSE_CODE_PRIMITIVE_INTEGER):
+        int successResponse;
+        // ... populate response ...
+        return successResponse;
     }
 
     StoreorderorderIdGetResponse handleGetForStoreorderorderId(const StoreorderorderIdGetRequest& params) override {
@@ -397,18 +323,21 @@ Create a class that inherits from the generated base class:
 ```cpp
 #include "api/UserApi.h"
 
-class UserImpl : public api::User {
+class UserImpl : public Api::User {
 public:
-    UserPostResponse handlePostForUser(const UserPostRequest& params) override {
-        // Access request parameters:
-        // Body: params.m_request (std::optional<models::User>)
+    void handlePostForUser(const UserPostRequest& params) override {
+        // Access request parameters from params struct
+        // Implement your logic here
+    }
 
-        // Implement your business logic here
+    void handlePostForUsercreateWithArray(const UsercreateWithArrayPostRequest& params) override {
+        // Access request parameters from params struct
+        // Implement your logic here
+    }
 
-        // Return success response (HTTP HTTP_RESPONSE_CODE_USER):
-        models::User successResponse;
-        // ... populate response ...
-        return successResponse;
+    void handlePostForUsercreateWithList(const UsercreateWithListPostRequest& params) override {
+        // Access request parameters from params struct
+        // Implement your logic here
     }
 
     void handleDeleteForUserusername(const UserusernameDeleteRequest& params) override {
@@ -426,6 +355,23 @@ public:
         models::User successResponse;
         // ... populate response ...
         return successResponse;
+    }
+
+    UserloginGetResponse handleGetForUserlogin(const UserloginGetRequest& params) override {
+        // Access request parameters:
+        // Query: params.m_username
+        // Query: params.m_password
+
+        // Implement your business logic here
+
+        // Return success response (HTTP HTTP_RESPONSE_CODE_PRIMITIVE_STRING):
+        std::string successResponse;
+        // ... populate response ...
+        return successResponse;
+    }
+
+    void handleGetForUserlogout() override {
+        // Implement your logic here
     }
 
     void handlePutForUserusername(const UserusernamePutRequest& params) override {
@@ -450,9 +396,13 @@ Here's a complete example of setting up and running the server:
 
 #include "api/UserApi.h"
 
+#include "api/AuthenticationManager.h"
 
 int main() {
     httplib::Server server;
+
+    // Create authentication manager (required for this API)
+    auto authMgr = std::make_shared<MyAuthManager>();
 
     // Create API implementations
 
@@ -465,11 +415,11 @@ int main() {
 
     // Register routes
 
-    pet.registerRoutes(server);
+    pet.registerRoutes(server, authMgr);
 
-    store.registerRoutes(server);
+    store.registerRoutes(server, authMgr);
 
-    user.registerRoutes(server);
+    user.registerRoutes(server, authMgr);
 
 
     // Start server
@@ -480,14 +430,64 @@ int main() {
 }
 ```
 
-### Without Authentication
+### With Authentication
 
-This API does not require authentication. Simply create your API implementations and register them with the server.
+When authentication is required, you must:
+1. Implement the `AuthenticationManager` interface (see Authentication section below)
+2. Pass the authentication manager to `registerRoutes()`
 
 
 ## Authentication
 
-This API does not require authentication.
+This API requires authentication. Implement the `AuthenticationManager` interface to provide your authentication logic:
+
+```cpp
+#include "api/AuthenticationManager.h"
+
+class MyAuthManager : public Api::AuthenticationManager {
+public:
+    bool validateApiKey(const std::string& key) override {
+        // Validate API key from header, query, or cookie
+        // Example: check against database or cache
+        return checkApiKeyInDatabase(key);
+    }
+
+    bool validateBearerToken(const std::string& token) override {
+        // Validate JWT or other bearer tokens
+        // Example: verify signature and expiration
+        return jwt::verify(token, secret_key);
+    }
+
+    bool validateBasicAuth(const std::string& username, const std::string& password) override {
+        // Validate username/password credentials
+        // Example: check against user database with hashed passwords
+        auto user = findUser(username);
+        return user && bcrypt::verify(password, user->passwordHash);
+    }
+
+    bool validateOAuth2(const std::string& token, const std::vector<std::string>& scopes) override {
+        // Validate OAuth2 token and check required scopes
+        // Example: introspect token and verify scopes
+        auto introspection = oauthProvider.introspect(token);
+        return introspection.active && hasAllScopes(introspection.scopes, scopes);
+    }
+};
+```
+
+### Authentication Flow
+
+1. The server automatically extracts credentials from requests (headers, query params, cookies)
+2. Before calling your handler, it validates credentials using your `AuthenticationManager`
+3. If validation fails, the server returns HTTP 401 Unauthorized automatically
+4. If validation succeeds, your handler is called
+
+### Security Schemes
+
+The generated code supports:
+- **API Key**: Header, query parameter, or cookie-based authentication
+- **Bearer Token**: Authorization header with "Bearer" scheme (e.g., JWT)
+- **Basic Auth**: HTTP Basic authentication (username:password)
+- **OAuth2**: OAuth 2.0 token-based authentication with scope validation
 
 
 ## Error Handling

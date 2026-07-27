@@ -382,5 +382,90 @@ public class CppHttplibServerCodegenModelTest {
         Assert.assertEquals(dataTypeMap.get("dateValue"), "std::string");
         Assert.assertEquals(dataTypeMap.get("dateTimeValue"), "std::string");
     }
+
+    @Test(description = "inline scalar enum parameter derives enumCases and values")
+    public void inlineEnumParameterTest() {
+        final CppHttplibServerCodegen codegen = new CppHttplibServerCodegen();
+        codegen.processOpts();
+
+        io.swagger.v3.oas.models.Operation operation = new io.swagger.v3.oas.models.Operation();
+        operation.setOperationId("testInlineEnumParam");
+
+        io.swagger.v3.oas.models.parameters.Parameter param = new io.swagger.v3.oas.models.parameters.Parameter();
+        param.setName("status");
+        param.setIn("query");
+        param.setRequired(true);
+        StringSchema enumSchema = new StringSchema();
+        enumSchema.setEnum(java.util.Arrays.asList("available", "pending", "sold"));
+        param.setSchema(enumSchema);
+        operation.addParametersItem(param);
+
+        io.swagger.v3.oas.models.PathItem pathItem = new io.swagger.v3.oas.models.PathItem();
+        pathItem.setGet(operation);
+
+        io.swagger.v3.oas.models.OpenAPI openAPI = new io.swagger.v3.oas.models.OpenAPI();
+        openAPI.setPaths(new io.swagger.v3.oas.models.Paths());
+        openAPI.getPaths().addPathItem("/test", pathItem);
+        codegen.setOpenAPI(openAPI);
+
+        CodegenParameter codegenParam = codegen.fromParameter(param, operation);
+        codegen.postProcessParameter(codegenParam);
+
+        Assert.assertTrue(codegenParam.isEnum, "parameter should be marked as enum");
+        Assert.assertEquals(codegenParam.dataType, "StatusEnum", "required enum parameter dataType should be the enum type");
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, String>> enumCases = (List<Map<String, String>>) codegenParam.vendorExtensions.get("enumCases");
+        Assert.assertNotNull(enumCases, "enumCases should be populated for inline enum parameter");
+
+        Map<String, String> availableCase = enumCases.stream()
+                .filter(c -> "available".equals(c.get("value")))
+                .findFirst()
+                .orElse(null);
+        Assert.assertNotNull(availableCase);
+        Assert.assertEquals(availableCase.get("name"), "AVAILABLE");
+        Assert.assertEquals(availableCase.get("value"), "available");
+
+        @SuppressWarnings("unchecked")
+        List<String> values = (List<String>) codegenParam.vendorExtensions.get("values");
+        Assert.assertNotNull(values);
+        Assert.assertTrue(values.contains("UNSPECIFIED"), "UNSPECIFIED sentinel should be injected");
+    }
+
+    @Test(description = "inline array-of-enum parameter derives enumCases for items")
+    public void inlineArrayOfEnumParameterTest() {
+        final CppHttplibServerCodegen codegen = new CppHttplibServerCodegen();
+        codegen.processOpts();
+
+        io.swagger.v3.oas.models.Operation operation = new io.swagger.v3.oas.models.Operation();
+        operation.setOperationId("testInlineArrayEnumParam");
+
+        io.swagger.v3.oas.models.parameters.Parameter param = new io.swagger.v3.oas.models.parameters.Parameter();
+        param.setName("statuses");
+        param.setIn("query");
+        param.setRequired(false);
+        StringSchema itemSchema = new StringSchema();
+        itemSchema.setEnum(java.util.Arrays.asList("available", "pending", "sold"));
+        ArraySchema arraySchema = new ArraySchema().items(itemSchema);
+        param.setSchema(arraySchema);
+        operation.addParametersItem(param);
+
+        CodegenParameter codegenParam = codegen.fromParameter(param, operation);
+
+        Assert.assertTrue(codegenParam.isArray, "parameter should be marked as array");
+        Assert.assertTrue(codegenParam.items.isEnum, "array items should be marked as enum");
+
+        @SuppressWarnings("unchecked")
+        List<Map<String, String>> enumCases = (List<Map<String, String>>) codegenParam.items.vendorExtensions.get("enumCases");
+        Assert.assertNotNull(enumCases, "enumCases should be populated for array-of-enum items");
+
+        Map<String, String> pendingCase = enumCases.stream()
+                .filter(c -> "pending".equals(c.get("value")))
+                .findFirst()
+                .orElse(null);
+        Assert.assertNotNull(pendingCase);
+        Assert.assertEquals(pendingCase.get("name"), "PENDING");
+        Assert.assertEquals(pendingCase.get("value"), "pending");
+    }
 }
 

@@ -15,6 +15,7 @@
         "operationId": "getPetById",
         "parameters": [
           { "name": "petId", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } },
+          { "name": "status", "in": "path", "required": true, "schema": { "type": "string", "enum": ["active", "inactive"] } },
           { "name": "customHeader", "in": "header", "required": false, "schema": { "type": "string" } },
           { "name": "cookieParam", "in": "cookie", "required": false, "schema": { "type": "string" } }
         ],
@@ -76,7 +77,8 @@
         "summary": "Find pets by status (enum, array)",
         "operationId": "findPetsByStatus",
         "parameters": [
-          { "name": "status", "in": "query", "required": true, "schema": { "type": "string", "enum": ["available", "pending", "sold"] } }
+          { "name": "status", "in": "query", "required": true, "schema": { "type": "string", "enum": ["available", "pending", "sold"] } },
+          { "name": "statuses", "in": "query", "required": false, "schema": { "type": "array", "items": { "type": "string", "enum": ["available", "pending", "sold"] } } }
         ],
         "responses": {
           "200": { "description": "OK", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Pet" } } } } },

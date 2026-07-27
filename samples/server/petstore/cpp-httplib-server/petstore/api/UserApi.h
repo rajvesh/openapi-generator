@@ -8,13 +8,15 @@
 
 // System headers
 #include <httplib.h>
+#include <memory>
 #include <variant>
 #include <optional>
 
 // Project headers
 #include "models/User.h"
 
-namespace api {
+namespace Api {
+    class AuthenticationManager;
 class User {
 public:
     User() = default;
@@ -22,8 +24,9 @@ public:
     /**
      * @brief Register all routes for this API
      * @param svr The httplib::Server instance to register routes on
+     * @param auth The AuthenticationManager for authentication (optional, defaults to nullptr)
      */
-    void registerRoutes(httplib::Server& svr);
+    void registerRoutes(httplib::Server& svr, std::shared_ptr<AuthenticationManager> auth = nullptr);
     // =========================
     // ===== Request types =====
     // =========================
@@ -37,11 +40,26 @@ public:
     };
 
     /**
+    * @brief Request type for handlePostForUsercreateWithArray.
+    */
+    struct UsercreateWithArrayPostRequest
+    {
+        models::User m_request; //Request Body (required)
+    };
+
+    /**
+    * @brief Request type for handlePostForUsercreateWithList.
+    */
+    struct UsercreateWithListPostRequest
+    {
+        models::User m_request; //Request Body (required)
+    };
+
+    /**
     * @brief Request type for handleDeleteForUserusername.
     */
     struct UserusernameDeleteRequest
     {
-
         std::string m_username; //PathParams (always required)
     };
 
@@ -50,8 +68,16 @@ public:
     */
     struct UserusernameGetRequest
     {
-
         std::string m_username; //PathParams (always required)
+    };
+
+    /**
+    * @brief Request type for handleGetForUserlogin.
+    */
+    struct UserloginGetRequest
+    {
+        std::string m_username; //Query Params (required)
+        std::string m_password; //Query Params (required)
     };
 
     /**
@@ -63,27 +89,33 @@ public:
         std::string m_username; //PathParams (always required)
     };
 
-    // ==========================
-    // ===== Response types =====
-    // ==========================
-
-    /**
-    * @brief Response type for handlePostForUser.
-    */
-    using UserPostResponse = models::User;
 
     /**
     * @brief Response type for handleGetForUserusername.
     */
     using UserusernameGetResponse = models::User;
+
+    /**
+    * @brief Response type for handleGetForUserlogin.
+    */
+    using UserloginGetResponse = std::string;
     // ============================================================
     // ===== Pure virtual functions to be handled by the user =====
     // ============================================================
     /**
      * UserPostRequest - struct containing all the query parameters and headers and schemas as available.
-     * @return UserPostResponse The response type returned by the handler.
      */
-    virtual UserPostResponse handlePostForUser(const UserPostRequest& params)=0;
+    virtual void handlePostForUser(const UserPostRequest& params)=0;
+
+    /**
+     * UsercreateWithArrayPostRequest - struct containing all the query parameters and headers and schemas as available.
+     */
+    virtual void handlePostForUsercreateWithArray(const UsercreateWithArrayPostRequest& params)=0;
+
+    /**
+     * UsercreateWithListPostRequest - struct containing all the query parameters and headers and schemas as available.
+     */
+    virtual void handlePostForUsercreateWithList(const UsercreateWithListPostRequest& params)=0;
 
     /**
      * UserusernameDeleteRequest - struct containing all the query parameters and headers and schemas as available.
@@ -97,6 +129,16 @@ public:
     virtual UserusernameGetResponse handleGetForUserusername(const UserusernameGetRequest& params)=0;
 
     /**
+     * UserloginGetRequest - struct containing all the query parameters and headers and schemas as available.
+     * @return UserloginGetResponse The response type returned by the handler.
+     */
+    virtual UserloginGetResponse handleGetForUserlogin(const UserloginGetRequest& params)=0;
+
+    /**
+     */
+    virtual void handleGetForUserlogout()=0;
+
+    /**
      * UserusernamePutRequest - struct containing all the query parameters and headers and schemas as available.
      */
     virtual void handlePutForUserusername(const UserusernamePutRequest& params)=0;
@@ -106,15 +148,26 @@ private:
     // ===== Helper function declarations =====
     // ========================================
     static bool parseUserPostParams(const httplib::Request& req, UserPostRequest& params, std::vector<std::string>& paramErrors);
-    void handleUserPostRequest(const httplib::Request& req, httplib::Response& res);
-    static void handleUserPostResponse(const UserPostResponse& result, httplib::Response& res);
+    void handleUserPostRequest(const httplib::Request& req, httplib::Response& res, std::shared_ptr<AuthenticationManager> auth);
+    static bool parseUsercreateWithArrayPostParams(const httplib::Request& req, UsercreateWithArrayPostRequest& params, std::vector<std::string>& paramErrors);
+    void handleUsercreateWithArrayPostRequest(const httplib::Request& req, httplib::Response& res, std::shared_ptr<AuthenticationManager> auth);
+    static bool parseUsercreateWithListPostParams(const httplib::Request& req, UsercreateWithListPostRequest& params, std::vector<std::string>& paramErrors);
+    void handleUsercreateWithListPostRequest(const httplib::Request& req, httplib::Response& res, std::shared_ptr<AuthenticationManager> auth);
     static bool parseUserusernameDeleteParams(const httplib::Request& req, UserusernameDeleteRequest& params, std::vector<std::string>& paramErrors);
-    void handleUserusernameDeleteRequest(const httplib::Request& req, httplib::Response& res);
+    void handleUserusernameDeleteRequest(const httplib::Request& req, httplib::Response& res, std::shared_ptr<AuthenticationManager> auth);
     static bool parseUserusernameGetParams(const httplib::Request& req, UserusernameGetRequest& params, std::vector<std::string>& paramErrors);
     void handleUserusernameGetRequest(const httplib::Request& req, httplib::Response& res);
     static void handleUserusernameGetResponse(const UserusernameGetResponse& result, httplib::Response& res);
+    static bool parseUserloginGetParams(const httplib::Request& req, UserloginGetRequest& params, std::vector<std::string>& paramErrors);
+    void handleUserloginGetRequest(const httplib::Request& req, httplib::Response& res);
+    static void handleUserloginGetResponse(const UserloginGetResponse& result, httplib::Response& res);
+    void handleUserlogoutGetRequest(const httplib::Request& req, httplib::Response& res, std::shared_ptr<AuthenticationManager> auth);
     static bool parseUserusernamePutParams(const httplib::Request& req, UserusernamePutRequest& params, std::vector<std::string>& paramErrors);
-    void handleUserusernamePutRequest(const httplib::Request& req, httplib::Response& res);
+    void handleUserusernamePutRequest(const httplib::Request& req, httplib::Response& res, std::shared_ptr<AuthenticationManager> auth);
+    static bool performAuthentication(
+        const httplib::Request& req,
+        std::shared_ptr<AuthenticationManager> auth,
+        httplib::Response& res);
 };
 
-} // namespace api
+} // namespace Api

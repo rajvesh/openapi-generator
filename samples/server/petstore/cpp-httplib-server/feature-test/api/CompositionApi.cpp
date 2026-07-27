@@ -18,13 +18,14 @@ constexpr int HTTP_RESPONSE_CODE_PAYMENT_METHOD = 200;
 constexpr int HTTP_RESPONSE_CODE_BAD_REQUEST = 400;
 constexpr int HTTP_RESPONSE_CODE_INTERNAL_SERVER_ERROR = 500;
 
-namespace api {
+namespace Api {
 
 using namespace models;
 
 bool Composition::parseCompositionallofPostParams(const httplib::Request& req, Composition::CompositionallofPostRequest& params, std::vector<std::string>& paramErrors)
 {
     std::vector<std::string> errors;
+
     if (!req.body.empty())
     {
         try
@@ -61,6 +62,7 @@ void Composition::handleCompositionallofPostResponse(const CompositionallofPostR
 bool Composition::parseCompositionanyofPostParams(const httplib::Request& req, Composition::CompositionanyofPostRequest& params, std::vector<std::string>& paramErrors)
 {
     std::vector<std::string> errors;
+
     if (!req.body.empty())
     {
         try
@@ -97,6 +99,7 @@ void Composition::handleCompositionanyofPostResponse(const CompositionanyofPostR
 bool Composition::parseCompositiononeofPostParams(const httplib::Request& req, Composition::CompositiononeofPostRequest& params, std::vector<std::string>& paramErrors)
 {
     std::vector<std::string> errors;
+
     if (!req.body.empty())
     {
         try
@@ -320,4 +323,4 @@ void Composition::registerRoutes(httplib::Server& svr)
     });
 }
 
-} // namespace api
+} // namespace Api

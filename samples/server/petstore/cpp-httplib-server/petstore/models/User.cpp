@@ -16,7 +16,7 @@ User::User()
 , email("")
 , password("")
 , phone("")
-, userStatus(std::nullopt)
+, userStatus(0)
 {
 }
 // =========================================
@@ -53,7 +53,7 @@ std::string User::getPhone() const
 {
     return phone;
 }
-std::optional<User::UserStatusEnum> User::getUserStatus() const
+int User::getUserStatus() const
 {
     return userStatus;
 }
@@ -89,47 +89,11 @@ void User::setPhone(const std::string& phoneObj)
 {
     phone = phoneObj;
 }
-void User::setUserStatus(const std::optional<UserStatusEnum>& userStatusObj)
+void User::setUserStatus(const int& userStatusObj)
 {
     userStatus = userStatusObj;
 }
 
-
-// =========================================
-// ===== Enum UserStatusEnum Conversions =====
-// =========================================
-std::string User::UserStatusEnumToString(User::UserStatusEnum value)
-{
-    switch (value)
-    {
-        case UserStatusEnum::UNSPECIFIED: return "UNSPECIFIED";
-        case UserStatusEnum::_0: return "0";
-        case UserStatusEnum::_1: return "1";
-        case UserStatusEnum::_2: return "2";
-        default: return {};
-    }
-}
-
-User::UserStatusEnum User::UserStatusEnumFromString(const std::string& str)
-{
-    if (str == "UNSPECIFIED")
-    {
-        return UserStatusEnum::UNSPECIFIED;
-    }
-    if (str == "0")
-    {
-        return UserStatusEnum::_0;
-    }
-    if (str == "1")
-    {
-        return UserStatusEnum::_1;
-    }
-    if (str == "2")
-    {
-        return UserStatusEnum::_2;
-    }
-    throw std::invalid_argument("Invalid enum value");
-}
 
 
 

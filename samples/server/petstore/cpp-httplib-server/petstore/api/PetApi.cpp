@@ -11,20 +11,23 @@
 
 // Project headers
 #include "PetApi.h"
+#include "AuthenticationManager.h"
 
-constexpr int HTTP_RESPONSE_CODE_PET = 201;
-constexpr int HTTP_RESPONSE_CODE_API_RESPONSE = 400;
-constexpr int HTTP_RESPONSE_CODE_COMPLEX_PARAMS_RESPONSE = 200;
+constexpr int HTTP_RESPONSE_CODE_PET = 200;
+constexpr int HTTP_RESPONSE_CODE_API_RESPONSE = 200;
 constexpr int HTTP_RESPONSE_CODE_NO_CONTENT = 204;
+constexpr int HTTP_RESPONSE_CODE_BAD_REQUEST = 400;
+constexpr int HTTP_RESPONSE_CODE_UNAUTHORIZED = 401;
 constexpr int HTTP_RESPONSE_CODE_INTERNAL_SERVER_ERROR = 500;
 
-namespace api {
+namespace Api {
 
 using namespace models;
 
 bool Pet::parsePetPostParams(const httplib::Request& req, Pet::PetPostRequest& params, std::vector<std::string>& paramErrors)
 {
     std::vector<std::string> errors;
+
     if (!req.body.empty())
     {
         try
@@ -52,189 +55,8 @@ bool Pet::parsePetPostParams(const httplib::Request& req, Pet::PetPostRequest& p
 }
 void Pet::handlePetPostResponse(const PetPostResponse& result, httplib::Response& res)
 {
-    std::visit([&](const auto& value)
-    {
-        using T = std::decay_t<decltype(value)>;
-
-        // Success types
-        if constexpr (std::is_same_v<T, models::Pet>)
-        {
-            res.status = HTTP_RESPONSE_CODE_PET;
-            nlohmann::json responseJson;
-            to_json(responseJson, value);
-            res.set_content(responseJson.dump(), "application/json");
-        }
-        // Error types
-        else if constexpr (std::is_same_v<T, models::ApiResponse>)
-        {
-            res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
-            nlohmann::json errorJson = value;
-            res.set_content(errorJson.dump(), "application/json");
-        }
-    }, result);
-}
-bool Pet::parsePetcomplexGetParams(const httplib::Request& req, Pet::PetcomplexGetRequest& params, std::vector<std::string>& paramErrors)
-{
-    std::vector<std::string> errors;
-
-    // Query Parameters - deepObj
-    if (req.has_param("deepObj"))
-    {
-        try
-        {
-            // Parse JSON object from query
-            auto val = req.get_param_value("deepObj", 0);
-            params.m_deepObj = nlohmann::json::parse(val).get<models::DeepObj>();
-        }
-        catch (const std::exception& e)
-        {
-            errors.push_back("Invalid query parameter 'deepObj': " + std::string(e.what()));
-        }
-    }
-    // Query Parameters - enumParam
-    if (req.has_param("enumParam"))
-    {
-        try
-        {
-            params.m_enumParam = (req.get_param_value("enumParam"));
-        }
-        catch (const std::exception& e)
-        {
-            errors.push_back("Invalid query parameter 'enumParam': " + std::string(e.what()));
-        }
-    }
-    // Query Parameters - pipeArr
-    if (req.has_param("pipeArr"))
-    {
-        try
-        {
-            // form/simple: multi-param or comma-separated
-            size_t count = req.get_param_value_count("pipeArr");
-            if (!params.m_pipeArr.has_value())
-            {
-                params.m_pipeArr = std::vector<std::string>{};
-            }
-            if (count > 1)
-            {
-                for (size_t i = 0; i < count; ++i)
-                {
-                    auto val = req.get_param_value("pipeArr", i);
-
-                    params.m_pipeArr->emplace_back(val);
-
-                }
-            }
-            else if (count == 1)
-            {
-                auto val = req.get_param_value("pipeArr", 0);
-                std::stringstream ss(val);
-                std::string item;
-                while (std::getline(ss, item, ','))
-                {
-                    if (!item.empty())
-                    {
-
-                        params.m_pipeArr->emplace_back(item);
-
-                    }
-                }
-            }
-        }
-        catch (const std::exception& e)
-        {
-            errors.push_back("Invalid query parameter 'pipeArr': " + std::string(e.what()));
-        }
-    }
-    // Query Parameters - spaceArr
-    if (req.has_param("spaceArr"))
-    {
-        try
-        {
-            // form/simple: multi-param or comma-separated
-            size_t count = req.get_param_value_count("spaceArr");
-            if (!params.m_spaceArr.has_value())
-            {
-                params.m_spaceArr = std::vector<int>{};
-            }
-            if (count > 1)
-            {
-                for (size_t i = 0; i < count; ++i)
-                {
-                    auto val = req.get_param_value("spaceArr", i);
-                    params.m_spaceArr->emplace_back(std::stoi(val));
-
-                }
-            }
-            else if (count == 1)
-            {
-                auto val = req.get_param_value("spaceArr", 0);
-                std::stringstream ss(val);
-                std::string item;
-                while (std::getline(ss, item, ','))
-                {
-                    if (!item.empty())
-                    {
-                        params.m_spaceArr->emplace_back(std::stoi(item));
-
-                    }
-                }
-            }
-        }
-        catch (const std::exception& e)
-        {
-            errors.push_back("Invalid query parameter 'spaceArr': " + std::string(e.what()));
-        }
-    }
-
-    // Header Parameters - x-enum-header
-    if (!req.get_header_value("x-enum-header").empty())
-    {
-        try
-        {
-            params.m_xEnumHeader = (req.get_header_value("x-enum-header"));
-        }
-        catch (const std::exception& e)
-        {
-            errors.push_back("Invalid header parameter 'x-enum-header': " + std::string(e.what()));
-        }
-    }
-
-    // Cookie Parameters - cookieEnum
-    try
-    {
-        auto cookieHeader = req.get_header_value("Cookie");
-        if (!cookieHeader.empty())
-        {
-            std::string cookieValue;
-            std::string key = "cookieEnum=";
-            size_t start = cookieHeader.find(key);
-            if (start != std::string::npos)
-            {
-                start += key.length();
-                size_t end = cookieHeader.find(";", start);
-                if (end == std::string::npos) end = cookieHeader.length();
-                cookieValue = cookieHeader.substr(start, end - start);
-                params.m_cookieEnum = (cookieValue);
-            }
-        }
-    }
-    catch (const std::exception& e)
-    {
-        errors.push_back("Invalid cookie parameter 'cookieEnum': " + std::string(e.what()));
-    }
-
-    // Return errors via out-parameter, return false if any errors
-    if (!errors.empty())
-    {
-        paramErrors = std::move(errors);
-        return false;
-    }
-    return true;
-}
-void Pet::handlePetcomplexGetResponse(const PetcomplexGetResponse& result, httplib::Response& res)
-{
     // Single response type
-    res.status = HTTP_RESPONSE_CODE_COMPLEX_PARAMS_RESPONSE;
+    res.status = HTTP_RESPONSE_CODE_PET;
     nlohmann::json responseJson;
     to_json(responseJson, result);
     res.set_content(responseJson.dump(), "application/json");
@@ -243,10 +65,10 @@ bool Pet::parsePetpetIdDeleteParams(const httplib::Request& req, Pet::PetpetIdDe
 {
     std::vector<std::string> errors;
 
-    // Query Parameters - api_key
-    if (req.has_param("api_key"))
+    // Header Parameters - api_key
+    if (!req.get_header_value("api_key").empty())
     {
-        params.m_apiKey = req.get_param_value("api_key");
+        params.m_apiKey = req.get_header_value("api_key");
     }
     else
     {
@@ -288,7 +110,33 @@ bool Pet::parsePetfindByStatusGetParams(const httplib::Request& req, Pet::Petfin
     {
         try
         {
-            params.m_status = (req.get_param_value("status"));
+            // form/simple: multi-param or comma-separated
+            size_t count = req.get_param_value_count("status");
+            if (count > 1)
+            {
+                for (size_t i = 0; i < count; ++i)
+                {
+                    auto val = req.get_param_value("status", i);
+
+                    params.m_status.emplace_back(val);
+
+                }
+            }
+            else if (count == 1)
+            {
+                auto val = req.get_param_value("status", 0);
+                std::stringstream ss(val);
+                std::string item;
+                while (std::getline(ss, item, ','))
+                {
+                    if (!item.empty())
+                    {
+
+                        params.m_status.emplace_back(item);
+
+                    }
+                }
+            }
         }
         catch (const std::exception& e)
         {
@@ -375,17 +223,6 @@ bool Pet::parsePetpetIdGetParams(const httplib::Request& req, Pet::PetpetIdGetRe
 {
     std::vector<std::string> errors;
 
-    // Header Parameters - customHeader
-    if (!req.get_header_value("customHeader").empty())
-    {
-        params.m_customHeader = req.get_header_value("customHeader");
-    }
-    else
-    {
-        // Use default value for optional parameter
-        params.m_customHeader = "";
-    }
-
     // Path Parameters - petId (index: 1)
     if (req.matches.size() < 1 + 1)
     {
@@ -403,40 +240,6 @@ bool Pet::parsePetpetIdGetParams(const httplib::Request& req, Pet::PetpetIdGetRe
         }
     }
 
-    // Cookie Parameters - cookieParam
-    try
-    {
-        auto cookieHeader = req.get_header_value("Cookie");
-        if (!cookieHeader.empty())
-        {
-            std::string cookieValue;
-            std::string key = "cookieParam=";
-            size_t start = cookieHeader.find(key);
-            if (start != std::string::npos)
-            {
-                start += key.length();
-                size_t end = cookieHeader.find(";", start);
-                if (end == std::string::npos) end = cookieHeader.length();
-                cookieValue = cookieHeader.substr(start, end - start);
-                params.m_cookieParam = cookieValue;
-            }
-            else
-            {
-                // Use default value for optional parameter
-                params.m_cookieParam = "";
-            }
-        }
-        else
-        {
-            // Use default value for optional parameter
-            params.m_cookieParam = "";
-        }
-    }
-    catch (const std::exception& e)
-    {
-        errors.push_back("Invalid cookie parameter 'cookieParam': " + std::string(e.what()));
-    }
-
     // Return errors via out-parameter, return false if any errors
     if (!errors.empty())
     {
@@ -447,30 +250,16 @@ bool Pet::parsePetpetIdGetParams(const httplib::Request& req, Pet::PetpetIdGetRe
 }
 void Pet::handlePetpetIdGetResponse(const PetpetIdGetResponse& result, httplib::Response& res)
 {
-    std::visit([&](const auto& value)
-    {
-        using T = std::decay_t<decltype(value)>;
-
-        // Success types
-        if constexpr (std::is_same_v<T, models::Pet>)
-        {
-            res.status = HTTP_RESPONSE_CODE_PET;
-            nlohmann::json responseJson;
-            to_json(responseJson, value);
-            res.set_content(responseJson.dump(), "application/json");
-        }
-        // Error types
-        else if constexpr (std::is_same_v<T, models::ApiResponse>)
-        {
-            res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
-            nlohmann::json errorJson = value;
-            res.set_content(errorJson.dump(), "application/json");
-        }
-    }, result);
+    // Single response type
+    res.status = HTTP_RESPONSE_CODE_PET;
+    nlohmann::json responseJson;
+    to_json(responseJson, result);
+    res.set_content(responseJson.dump(), "application/json");
 }
 bool Pet::parsePetPutParams(const httplib::Request& req, Pet::PetPutRequest& params, std::vector<std::string>& paramErrors)
 {
     std::vector<std::string> errors;
+
     if (!req.body.empty())
     {
         try
@@ -496,12 +285,128 @@ bool Pet::parsePetPutParams(const httplib::Request& req, Pet::PetPutRequest& par
     }
     return true;
 }
+void Pet::handlePetPutResponse(const PetPutResponse& result, httplib::Response& res)
+{
+    // Single response type
+    res.status = HTTP_RESPONSE_CODE_PET;
+    nlohmann::json responseJson;
+    to_json(responseJson, result);
+    res.set_content(responseJson.dump(), "application/json");
+}
+bool Pet::parsePetpetIdPostParams(const httplib::Request& req, Pet::PetpetIdPostRequest& params, std::vector<std::string>& paramErrors)
+{
+    std::vector<std::string> errors;
+
+    // Path Parameters - petId (index: 1)
+    if (req.matches.size() < 1 + 1)
+    {
+        errors.push_back("Missing path parameter 'petId'");
+    }
+    else
+    {
+        try
+        {
+            params.m_petId = std::stoll(req.matches[1]);
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid path parameter 'petId': " + std::string(e.what()));
+        }
+    }
+
+    // Return errors via out-parameter, return false if any errors
+    if (!errors.empty())
+    {
+        paramErrors = std::move(errors);
+        return false;
+    }
+    return true;
+}
+bool Pet::parsePetpetIduploadImagePostParams(const httplib::Request& req, Pet::PetpetIduploadImagePostRequest& params, std::vector<std::string>& paramErrors)
+{
+    std::vector<std::string> errors;
+
+    // Path Parameters - petId (index: 1)
+    if (req.matches.size() < 1 + 1)
+    {
+        errors.push_back("Missing path parameter 'petId'");
+    }
+    else
+    {
+        try
+        {
+            params.m_petId = std::stoll(req.matches[1]);
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid path parameter 'petId': " + std::string(e.what()));
+        }
+    }
+
+    // Return errors via out-parameter, return false if any errors
+    if (!errors.empty())
+    {
+        paramErrors = std::move(errors);
+        return false;
+    }
+    return true;
+}
+void Pet::handlePetpetIduploadImagePostResponse(const PetpetIduploadImagePostResponse& result, httplib::Response& res)
+{
+    // Single response type
+    res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+    nlohmann::json responseJson;
+    to_json(responseJson, result);
+    res.set_content(responseJson.dump(), "application/json");
+}
+
+bool Pet::performAuthentication(
+    const httplib::Request& req,
+    std::shared_ptr<AuthenticationManager> auth,
+    httplib::Response& res)
+{
+    if (!auth)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "AuthenticationManager not configured";
+        res.status = HTTP_RESPONSE_CODE_INTERNAL_SERVER_ERROR;
+        res.set_content(errorJson.dump(), "application/json");
+        return false;
+    }
+
+    if (req.has_header("api_key"))
+    {
+        if (auth->validateApiKey(req.get_header_value("api_key"))) return true;
+    }
 
 
-void Pet::handlePetPostRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+
+    if (req.has_header("Authorization"))
+    {
+        auto authHeader = req.get_header_value("Authorization");
+        if (authHeader.find("Bearer ") == 0)
+        {
+            std::string token = authHeader.substr(7);
+            std::vector<std::string> requiredScopes = { "write:pets", "read:pets" };
+            if (auth->validateOAuth2(token, requiredScopes)) return true;
+        }
+    }
+
+    return false;
+}
+
+void Pet::handlePetPostRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res, std::shared_ptr<AuthenticationManager> auth)
 {
     try
     {
+        if (!performAuthentication(req, auth, res))
+        {
+            nlohmann::json errorJson = nlohmann::json::object();
+            errorJson["message"] = "Authentication required";
+            res.status = HTTP_RESPONSE_CODE_UNAUTHORIZED;
+            res.set_content(errorJson.dump(), "application/json");
+            return;
+        }
 
         PetPostRequest params;
         std::vector<std::string> paramErrors;
@@ -510,7 +415,7 @@ void Pet::handlePetPostRequest([[maybe_unused]] const httplib::Request& req, htt
             nlohmann::json errorJson = nlohmann::json::object();
             errorJson["message"] = "Invalid parameters";
             errorJson["errors"] = paramErrors;
-            res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+            res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
             res.set_content(errorJson.dump(), "application/json");
             return;
         }
@@ -522,72 +427,51 @@ void Pet::handlePetPostRequest([[maybe_unused]] const httplib::Request& req, htt
     {
         nlohmann::json errorJson = nlohmann::json::object();
         errorJson["message"] = "Invalid JSON: " + std::string(e.what());
-        res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+        res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
         res.set_content(errorJson.dump(), "application/json");
     }
     catch (const nlohmann::json::invalid_iterator& e)
     {
         nlohmann::json errorJson = nlohmann::json::object();
         errorJson["message"] = "Invalid JSON: " + std::string(e.what());
-        res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+        res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
         res.set_content(errorJson.dump(), "application/json");
     }
     catch (const nlohmann::json::type_error& e)
     {
         nlohmann::json errorJson = nlohmann::json::object();
         errorJson["message"] = "Invalid JSON: " + std::string(e.what());
-        res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+        res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
         res.set_content(errorJson.dump(), "application/json");
     }
     catch (const nlohmann::json::out_of_range& e)
     {
         nlohmann::json errorJson = nlohmann::json::object();
         errorJson["message"] = "Invalid JSON: " + std::string(e.what());
-        res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+        res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
         res.set_content(errorJson.dump(), "application/json");
     }
     catch (const nlohmann::json::other_error& e)
     {
         nlohmann::json errorJson = nlohmann::json::object();
         errorJson["message"] = "Invalid JSON: " + std::string(e.what());
-        res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+        res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
         res.set_content(errorJson.dump(), "application/json");
     }
 }
 
-void Pet::handlePetcomplexGetRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+void Pet::handlePetpetIdDeleteRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res, std::shared_ptr<AuthenticationManager> auth)
 {
     try
     {
-
-        PetcomplexGetRequest params;
-        std::vector<std::string> paramErrors;
-        if (!parsePetcomplexGetParams(req, params, paramErrors))
+        if (!performAuthentication(req, auth, res))
         {
             nlohmann::json errorJson = nlohmann::json::object();
-            errorJson["message"] = "Invalid parameters";
-            errorJson["errors"] = paramErrors;
-            res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+            errorJson["message"] = "Authentication required";
+            res.status = HTTP_RESPONSE_CODE_UNAUTHORIZED;
             res.set_content(errorJson.dump(), "application/json");
             return;
         }
-        auto result = handleGetForPetcomplex(params);
-        handlePetcomplexGetResponse(result, res);
-
-    }
-    catch (const std::exception& e)
-    {
-        nlohmann::json errorJson = nlohmann::json::object();
-        errorJson["message"] = "Internal error: " + std::string(e.what());
-        res.status = HTTP_RESPONSE_CODE_INTERNAL_SERVER_ERROR;
-        res.set_content(errorJson.dump(), "application/json");
-    }
-}
-
-void Pet::handlePetpetIdDeleteRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
-{
-    try
-    {
 
         PetpetIdDeleteRequest params;
         std::vector<std::string> paramErrors;
@@ -596,7 +480,7 @@ void Pet::handlePetpetIdDeleteRequest([[maybe_unused]] const httplib::Request& r
             nlohmann::json errorJson = nlohmann::json::object();
             errorJson["message"] = "Invalid parameters";
             errorJson["errors"] = paramErrors;
-            res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+            res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
             res.set_content(errorJson.dump(), "application/json");
             return;
         }
@@ -614,10 +498,18 @@ void Pet::handlePetpetIdDeleteRequest([[maybe_unused]] const httplib::Request& r
     }
 }
 
-void Pet::handlePetfindByStatusGetRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+void Pet::handlePetfindByStatusGetRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res, std::shared_ptr<AuthenticationManager> auth)
 {
     try
     {
+        if (!performAuthentication(req, auth, res))
+        {
+            nlohmann::json errorJson = nlohmann::json::object();
+            errorJson["message"] = "Authentication required";
+            res.status = HTTP_RESPONSE_CODE_UNAUTHORIZED;
+            res.set_content(errorJson.dump(), "application/json");
+            return;
+        }
 
         PetfindByStatusGetRequest params;
         std::vector<std::string> paramErrors;
@@ -626,7 +518,7 @@ void Pet::handlePetfindByStatusGetRequest([[maybe_unused]] const httplib::Reques
             nlohmann::json errorJson = nlohmann::json::object();
             errorJson["message"] = "Invalid parameters";
             errorJson["errors"] = paramErrors;
-            res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+            res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
             res.set_content(errorJson.dump(), "application/json");
             return;
         }
@@ -643,10 +535,18 @@ void Pet::handlePetfindByStatusGetRequest([[maybe_unused]] const httplib::Reques
     }
 }
 
-void Pet::handlePetfindByTagsGetRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+void Pet::handlePetfindByTagsGetRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res, std::shared_ptr<AuthenticationManager> auth)
 {
     try
     {
+        if (!performAuthentication(req, auth, res))
+        {
+            nlohmann::json errorJson = nlohmann::json::object();
+            errorJson["message"] = "Authentication required";
+            res.status = HTTP_RESPONSE_CODE_UNAUTHORIZED;
+            res.set_content(errorJson.dump(), "application/json");
+            return;
+        }
 
         PetfindByTagsGetRequest params;
         std::vector<std::string> paramErrors;
@@ -655,7 +555,7 @@ void Pet::handlePetfindByTagsGetRequest([[maybe_unused]] const httplib::Request&
             nlohmann::json errorJson = nlohmann::json::object();
             errorJson["message"] = "Invalid parameters";
             errorJson["errors"] = paramErrors;
-            res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+            res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
             res.set_content(errorJson.dump(), "application/json");
             return;
         }
@@ -672,10 +572,18 @@ void Pet::handlePetfindByTagsGetRequest([[maybe_unused]] const httplib::Request&
     }
 }
 
-void Pet::handlePetpetIdGetRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+void Pet::handlePetpetIdGetRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res, std::shared_ptr<AuthenticationManager> auth)
 {
     try
     {
+        if (!performAuthentication(req, auth, res))
+        {
+            nlohmann::json errorJson = nlohmann::json::object();
+            errorJson["message"] = "Authentication required";
+            res.status = HTTP_RESPONSE_CODE_UNAUTHORIZED;
+            res.set_content(errorJson.dump(), "application/json");
+            return;
+        }
 
         PetpetIdGetRequest params;
         std::vector<std::string> paramErrors;
@@ -684,7 +592,7 @@ void Pet::handlePetpetIdGetRequest([[maybe_unused]] const httplib::Request& req,
             nlohmann::json errorJson = nlohmann::json::object();
             errorJson["message"] = "Invalid parameters";
             errorJson["errors"] = paramErrors;
-            res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+            res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
             res.set_content(errorJson.dump(), "application/json");
             return;
         }
@@ -701,10 +609,18 @@ void Pet::handlePetpetIdGetRequest([[maybe_unused]] const httplib::Request& req,
     }
 }
 
-void Pet::handlePetPutRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+void Pet::handlePetPutRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res, std::shared_ptr<AuthenticationManager> auth)
 {
     try
     {
+        if (!performAuthentication(req, auth, res))
+        {
+            nlohmann::json errorJson = nlohmann::json::object();
+            errorJson["message"] = "Authentication required";
+            res.status = HTTP_RESPONSE_CODE_UNAUTHORIZED;
+            res.set_content(errorJson.dump(), "application/json");
+            return;
+        }
 
         PetPutRequest params;
         std::vector<std::string> paramErrors;
@@ -713,83 +629,161 @@ void Pet::handlePetPutRequest([[maybe_unused]] const httplib::Request& req, http
             nlohmann::json errorJson = nlohmann::json::object();
             errorJson["message"] = "Invalid parameters";
             errorJson["errors"] = paramErrors;
-            res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+            res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
             res.set_content(errorJson.dump(), "application/json");
             return;
         }
-
-        handlePutForPet(params);
-        res.status = HTTP_RESPONSE_CODE_NO_CONTENT;
+        auto result = handlePutForPet(params);
+        handlePetPutResponse(result, res);
 
     }
     catch (const nlohmann::json::parse_error& e)
     {
         nlohmann::json errorJson = nlohmann::json::object();
         errorJson["message"] = "Invalid JSON: " + std::string(e.what());
-        res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+        res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
         res.set_content(errorJson.dump(), "application/json");
     }
     catch (const nlohmann::json::invalid_iterator& e)
     {
         nlohmann::json errorJson = nlohmann::json::object();
         errorJson["message"] = "Invalid JSON: " + std::string(e.what());
-        res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+        res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
         res.set_content(errorJson.dump(), "application/json");
     }
     catch (const nlohmann::json::type_error& e)
     {
         nlohmann::json errorJson = nlohmann::json::object();
         errorJson["message"] = "Invalid JSON: " + std::string(e.what());
-        res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+        res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
         res.set_content(errorJson.dump(), "application/json");
     }
     catch (const nlohmann::json::out_of_range& e)
     {
         nlohmann::json errorJson = nlohmann::json::object();
         errorJson["message"] = "Invalid JSON: " + std::string(e.what());
-        res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+        res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
         res.set_content(errorJson.dump(), "application/json");
     }
     catch (const nlohmann::json::other_error& e)
     {
         nlohmann::json errorJson = nlohmann::json::object();
         errorJson["message"] = "Invalid JSON: " + std::string(e.what());
-        res.status = HTTP_RESPONSE_CODE_API_RESPONSE;
+        res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+}
+
+void Pet::handlePetpetIdPostRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res, std::shared_ptr<AuthenticationManager> auth)
+{
+    try
+    {
+        if (!performAuthentication(req, auth, res))
+        {
+            nlohmann::json errorJson = nlohmann::json::object();
+            errorJson["message"] = "Authentication required";
+            res.status = HTTP_RESPONSE_CODE_UNAUTHORIZED;
+            res.set_content(errorJson.dump(), "application/json");
+            return;
+        }
+
+        PetpetIdPostRequest params;
+        std::vector<std::string> paramErrors;
+        if (!parsePetpetIdPostParams(req, params, paramErrors))
+        {
+            nlohmann::json errorJson = nlohmann::json::object();
+            errorJson["message"] = "Invalid parameters";
+            errorJson["errors"] = paramErrors;
+            res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
+            res.set_content(errorJson.dump(), "application/json");
+            return;
+        }
+
+        handlePostForPetpetId(params);
+        res.status = HTTP_RESPONSE_CODE_NO_CONTENT;
+
+    }
+    catch (const std::exception& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Internal error: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_INTERNAL_SERVER_ERROR;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+}
+
+void Pet::handlePetpetIduploadImagePostRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res, std::shared_ptr<AuthenticationManager> auth)
+{
+    try
+    {
+        if (!performAuthentication(req, auth, res))
+        {
+            nlohmann::json errorJson = nlohmann::json::object();
+            errorJson["message"] = "Authentication required";
+            res.status = HTTP_RESPONSE_CODE_UNAUTHORIZED;
+            res.set_content(errorJson.dump(), "application/json");
+            return;
+        }
+
+        PetpetIduploadImagePostRequest params;
+        std::vector<std::string> paramErrors;
+        if (!parsePetpetIduploadImagePostParams(req, params, paramErrors))
+        {
+            nlohmann::json errorJson = nlohmann::json::object();
+            errorJson["message"] = "Invalid parameters";
+            errorJson["errors"] = paramErrors;
+            res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
+            res.set_content(errorJson.dump(), "application/json");
+            return;
+        }
+        auto result = handlePostForPetpetIduploadImage(params);
+        handlePetpetIduploadImagePostResponse(result, res);
+
+    }
+    catch (const std::exception& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Internal error: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_INTERNAL_SERVER_ERROR;
         res.set_content(errorJson.dump(), "application/json");
     }
 }
 
 
-void Pet::registerRoutes(httplib::Server& svr)
+void Pet::registerRoutes(httplib::Server& svr, std::shared_ptr<AuthenticationManager> auth)
 {
-    svr.Post("/pet", [this]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    svr.Post("/pet", [this, auth]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
     {
-        handlePetPostRequest(req, res);
+        handlePetPostRequest(req, res, auth);
     });
-    svr.Get("/pet/complex", [this]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    svr.Delete("/pet/([^/]+)", [this, auth]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
     {
-        handlePetcomplexGetRequest(req, res);
+        handlePetpetIdDeleteRequest(req, res, auth);
     });
-    svr.Delete("/pet/{petId}", [this]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    svr.Get("/pet/findByStatus", [this, auth]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
     {
-        handlePetpetIdDeleteRequest(req, res);
+        handlePetfindByStatusGetRequest(req, res, auth);
     });
-    svr.Get("/pet/findByStatus", [this]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    svr.Get("/pet/findByTags", [this, auth]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
     {
-        handlePetfindByStatusGetRequest(req, res);
+        handlePetfindByTagsGetRequest(req, res, auth);
     });
-    svr.Get("/pet/findByTags", [this]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    svr.Get("/pet/([^/]+)", [this, auth]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
     {
-        handlePetfindByTagsGetRequest(req, res);
+        handlePetpetIdGetRequest(req, res, auth);
     });
-    svr.Get("/pet/{petId}", [this]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    svr.Put("/pet", [this, auth]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
     {
-        handlePetpetIdGetRequest(req, res);
+        handlePetPutRequest(req, res, auth);
     });
-    svr.Put("/pet", [this]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    svr.Post("/pet/([^/]+)", [this, auth]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
     {
-        handlePetPutRequest(req, res);
+        handlePetpetIdPostRequest(req, res, auth);
+    });
+    svr.Post("/pet/([^/]+)/uploadImage", [this, auth]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    {
+        handlePetpetIduploadImagePostRequest(req, res, auth);
     });
 }
 
-} // namespace api
+} // namespace Api

@@ -1,3 +1,4 @@
+.openapi-generator-ignore
 CMakeLists.txt
 LICENSE
 README.md
@@ -62,6 +63,8 @@ models/TestHeaderParameters200Response.cpp
 models/TestHeaderParameters200Response.h
 models/TestHeaderParameters401Response.cpp
 models/TestHeaderParameters401Response.h
+models/TestMultiplePathParameters200Response.cpp
+models/TestMultiplePathParameters200Response.h
 models/TestOAuth2Security200Response.cpp
 models/TestOAuth2Security200Response.h
 models/TestQueryParameters200Response.cpp

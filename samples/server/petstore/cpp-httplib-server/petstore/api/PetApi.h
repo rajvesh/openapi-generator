@@ -8,16 +8,16 @@
 
 // System headers
 #include <httplib.h>
+#include <memory>
 #include <variant>
 #include <optional>
 
 // Project headers
 #include "models/ApiResponse.h"
-#include "models/ComplexParamsResponse.h"
-#include "models/DeepObj.h"
 #include "models/Pet.h"
 
-namespace api {
+namespace Api {
+    class AuthenticationManager;
 class Pet {
 public:
     Pet() = default;
@@ -25,8 +25,9 @@ public:
     /**
      * @brief Register all routes for this API
      * @param svr The httplib::Server instance to register routes on
+     * @param auth The AuthenticationManager for authentication (optional, defaults to nullptr)
      */
-    void registerRoutes(httplib::Server& svr);
+    void registerRoutes(httplib::Server& svr, std::shared_ptr<AuthenticationManager> auth = nullptr);
     // =========================
     // ===== Request types =====
     // =========================
@@ -40,26 +41,11 @@ public:
     };
 
     /**
-    * @brief Request type for handleGetForPetcomplex.
-    */
-    struct PetcomplexGetRequest
-    {
-
-        std::optional<models::DeepObj> m_deepObj; //Query Params (optional)
-        std::optional<std::string> m_enumParam; //Query Params (optional)
-        std::optional<std::vector<std::string>> m_pipeArr; //Query Params (optional)
-        std::optional<std::vector<int>> m_spaceArr; //Query Params (optional)
-        std::optional<std::string> m_xEnumHeader; //HeaderParams (optional)
-        std::optional<std::string> m_cookieEnum; //Cookies (optional)
-    };
-
-    /**
     * @brief Request type for handleDeleteForPetpetId.
     */
     struct PetpetIdDeleteRequest
     {
-
-        std::optional<std::string> m_apiKey; //Query Params (optional)
+        std::optional<std::string> m_apiKey; //HeaderParams (optional)
         long m_petId; //PathParams (always required)
     };
 
@@ -68,8 +54,7 @@ public:
     */
     struct PetfindByStatusGetRequest
     {
-
-        std::string m_status; //Query Params (required)
+        std::vector<std::string> m_status; //Query Params (required)
     };
 
     /**
@@ -77,7 +62,6 @@ public:
     */
     struct PetfindByTagsGetRequest
     {
-
         std::vector<std::string> m_tags; //Query Params (required)
     };
 
@@ -86,10 +70,7 @@ public:
     */
     struct PetpetIdGetRequest
     {
-
-        std::optional<std::string> m_customHeader; //HeaderParams (optional)
         long m_petId; //PathParams (always required)
-        std::optional<std::string> m_cookieParam; //Cookies (optional)
     };
 
     /**
@@ -100,6 +81,22 @@ public:
         models::Pet m_request; //Request Body (required)
     };
 
+    /**
+    * @brief Request type for handlePostForPetpetId.
+    */
+    struct PetpetIdPostRequest
+    {
+        long m_petId; //PathParams (always required)
+    };
+
+    /**
+    * @brief Request type for handlePostForPetpetIduploadImage.
+    */
+    struct PetpetIduploadImagePostRequest
+    {
+        long m_petId; //PathParams (always required)
+    };
+
     // ==========================
     // ===== Response types =====
     // ==========================
@@ -107,14 +104,7 @@ public:
     /**
     * @brief Response type for handlePostForPet.
     */
-    using PetPostResponse = std::variant<
-                                        models::Pet ,
-                                        models::ApiResponse >;
-
-    /**
-    * @brief Response type for handleGetForPetcomplex.
-    */
-    using PetcomplexGetResponse = models::ComplexParamsResponse;
+    using PetPostResponse = models::Pet;
 
     /**
     * @brief Response type for handleGetForPetfindByStatus.
@@ -129,9 +119,17 @@ public:
     /**
     * @brief Response type for handleGetForPetpetId.
     */
-    using PetpetIdGetResponse = std::variant<
-                                        models::Pet ,
-                                        models::ApiResponse >;
+    using PetpetIdGetResponse = models::Pet;
+
+    /**
+    * @brief Response type for handlePutForPet.
+    */
+    using PetPutResponse = models::Pet;
+
+    /**
+    * @brief Response type for handlePostForPetpetIduploadImage.
+    */
+    using PetpetIduploadImagePostResponse = models::ApiResponse;
     // ============================================================
     // ===== Pure virtual functions to be handled by the user =====
     // ============================================================
@@ -140,12 +138,6 @@ public:
      * @return PetPostResponse The response type returned by the handler.
      */
     virtual PetPostResponse handlePostForPet(const PetPostRequest& params)=0;
-
-    /**
-     * PetcomplexGetRequest - struct containing all the query parameters and headers and schemas as available.
-     * @return PetcomplexGetResponse The response type returned by the handler.
-     */
-    virtual PetcomplexGetResponse handleGetForPetcomplex(const PetcomplexGetRequest& params)=0;
 
     /**
      * PetpetIdDeleteRequest - struct containing all the query parameters and headers and schemas as available.
@@ -172,32 +164,51 @@ public:
 
     /**
      * PetPutRequest - struct containing all the query parameters and headers and schemas as available.
+     * @return PetPutResponse The response type returned by the handler.
      */
-    virtual void handlePutForPet(const PetPutRequest& params)=0;
+    virtual PetPutResponse handlePutForPet(const PetPutRequest& params)=0;
+
+    /**
+     * PetpetIdPostRequest - struct containing all the query parameters and headers and schemas as available.
+     */
+    virtual void handlePostForPetpetId(const PetpetIdPostRequest& params)=0;
+
+    /**
+     * PetpetIduploadImagePostRequest - struct containing all the query parameters and headers and schemas as available.
+     * @return PetpetIduploadImagePostResponse The response type returned by the handler.
+     */
+    virtual PetpetIduploadImagePostResponse handlePostForPetpetIduploadImage(const PetpetIduploadImagePostRequest& params)=0;
 
 private:
     // ========================================
     // ===== Helper function declarations =====
     // ========================================
     static bool parsePetPostParams(const httplib::Request& req, PetPostRequest& params, std::vector<std::string>& paramErrors);
-    void handlePetPostRequest(const httplib::Request& req, httplib::Response& res);
+    void handlePetPostRequest(const httplib::Request& req, httplib::Response& res, std::shared_ptr<AuthenticationManager> auth);
     static void handlePetPostResponse(const PetPostResponse& result, httplib::Response& res);
-    static bool parsePetcomplexGetParams(const httplib::Request& req, PetcomplexGetRequest& params, std::vector<std::string>& paramErrors);
-    void handlePetcomplexGetRequest(const httplib::Request& req, httplib::Response& res);
-    static void handlePetcomplexGetResponse(const PetcomplexGetResponse& result, httplib::Response& res);
     static bool parsePetpetIdDeleteParams(const httplib::Request& req, PetpetIdDeleteRequest& params, std::vector<std::string>& paramErrors);
-    void handlePetpetIdDeleteRequest(const httplib::Request& req, httplib::Response& res);
+    void handlePetpetIdDeleteRequest(const httplib::Request& req, httplib::Response& res, std::shared_ptr<AuthenticationManager> auth);
     static bool parsePetfindByStatusGetParams(const httplib::Request& req, PetfindByStatusGetRequest& params, std::vector<std::string>& paramErrors);
-    void handlePetfindByStatusGetRequest(const httplib::Request& req, httplib::Response& res);
+    void handlePetfindByStatusGetRequest(const httplib::Request& req, httplib::Response& res, std::shared_ptr<AuthenticationManager> auth);
     static void handlePetfindByStatusGetResponse(const PetfindByStatusGetResponse& result, httplib::Response& res);
     static bool parsePetfindByTagsGetParams(const httplib::Request& req, PetfindByTagsGetRequest& params, std::vector<std::string>& paramErrors);
-    void handlePetfindByTagsGetRequest(const httplib::Request& req, httplib::Response& res);
+    void handlePetfindByTagsGetRequest(const httplib::Request& req, httplib::Response& res, std::shared_ptr<AuthenticationManager> auth);
     static void handlePetfindByTagsGetResponse(const PetfindByTagsGetResponse& result, httplib::Response& res);
     static bool parsePetpetIdGetParams(const httplib::Request& req, PetpetIdGetRequest& params, std::vector<std::string>& paramErrors);
-    void handlePetpetIdGetRequest(const httplib::Request& req, httplib::Response& res);
+    void handlePetpetIdGetRequest(const httplib::Request& req, httplib::Response& res, std::shared_ptr<AuthenticationManager> auth);
     static void handlePetpetIdGetResponse(const PetpetIdGetResponse& result, httplib::Response& res);
     static bool parsePetPutParams(const httplib::Request& req, PetPutRequest& params, std::vector<std::string>& paramErrors);
-    void handlePetPutRequest(const httplib::Request& req, httplib::Response& res);
+    void handlePetPutRequest(const httplib::Request& req, httplib::Response& res, std::shared_ptr<AuthenticationManager> auth);
+    static void handlePetPutResponse(const PetPutResponse& result, httplib::Response& res);
+    static bool parsePetpetIdPostParams(const httplib::Request& req, PetpetIdPostRequest& params, std::vector<std::string>& paramErrors);
+    void handlePetpetIdPostRequest(const httplib::Request& req, httplib::Response& res, std::shared_ptr<AuthenticationManager> auth);
+    static bool parsePetpetIduploadImagePostParams(const httplib::Request& req, PetpetIduploadImagePostRequest& params, std::vector<std::string>& paramErrors);
+    void handlePetpetIduploadImagePostRequest(const httplib::Request& req, httplib::Response& res, std::shared_ptr<AuthenticationManager> auth);
+    static void handlePetpetIduploadImagePostResponse(const PetpetIduploadImagePostResponse& result, httplib::Response& res);
+    static bool performAuthentication(
+        const httplib::Request& req,
+        std::shared_ptr<AuthenticationManager> auth,
+        httplib::Response& res);
 };
 
-} // namespace api
+} // namespace Api

@@ -18,7 +18,7 @@
 #include "models/TestBearerSecurity200Response.h"
 #include "models/TestOAuth2Security200Response.h"
 
-namespace api {
+namespace Api {
     class AuthenticationManager;
 class Security {
 public:
@@ -103,4 +103,4 @@ private:
         httplib::Response& res);
 };
 
-} // namespace api
+} // namespace Api

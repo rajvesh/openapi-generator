@@ -1,4 +1,4 @@
-# cpp-httplib-server-feature-test - C++ Server
+# cpp-httplib-server - C++ Server
 
 ## Overview
 
@@ -477,6 +477,20 @@ std::string jsonString = json.dump();
 // Deserialize from JSON
 auto parsedModel = models::TestHeaderParameters401Response::fromJson(nlohmann::json::parse(jsonString));
 ```
+#### models::TestMultiplePathParameters200Response
+
+```cpp
+// Create a model
+auto model = models::TestMultiplePathParameters200Response();
+model.setMessage(/* value */);  // Set message
+
+// Serialize to JSON
+nlohmann::json json = models::TestMultiplePathParameters200Response::toJson(model);
+std::string jsonString = json.dump();
+
+// Deserialize from JSON
+auto parsedModel = models::TestMultiplePathParameters200Response::fromJson(nlohmann::json::parse(jsonString));
+```
 #### models::TestOAuth2Security200Response
 
 ```cpp
@@ -534,7 +548,7 @@ Create a class that inherits from the generated base class:
 ```cpp
 #include "api/CompositionApi.h"
 
-class CompositionImpl : public api::Composition {
+class CompositionImpl : public Api::Composition {
 public:
     CompositionallofPostResponse handlePostForCompositionallof(const CompositionallofPostRequest& params) override {
         // Access request parameters:
@@ -581,7 +595,7 @@ Create a class that inherits from the generated base class:
 ```cpp
 #include "api/DatatypesApi.h"
 
-class DatatypesImpl : public api::Datatypes {
+class DatatypesImpl : public Api::Datatypes {
 public:
     DatatypesarraysPostResponse handlePostForDatatypesarrays(const DatatypesarraysPostRequest& params) override {
         // Access request parameters:
@@ -685,14 +699,16 @@ Create a class that inherits from the generated base class:
 ```cpp
 #include "api/ParametersApi.h"
 
-class ParametersImpl : public api::Parameters {
+class ParametersImpl : public Api::Parameters {
 public:
     ParameterscombinedresourceIdPostResponse handlePostForParameterscombinedresourceId(const ParameterscombinedresourceIdPostRequest& params) override {
         // Access request parameters:
         // Path: params.m_resourceId
         // Query: params.m_filter
+        // Query: params.m_status (optional)
         // Query: params.m_limit (optional)
         // Header: params.m_xCorrelationId
+        // Header: params.m_xStatus (optional)
         // Header: params.m_xClientVersion (optional)
         // Body: params.m_request (std::optional<models::SimpleObject>)
 
@@ -738,6 +754,20 @@ public:
         // return errorResponse;
     }
 
+    ParametersresourcesresourceIdusersuserIdcallbackscallbackNameGetResponse handleGetForParametersresourcesresourceIdusersuserIdcallbackscallbackName(const ParametersresourcesresourceIdusersuserIdcallbackscallbackNameGetRequest& params) override {
+        // Access request parameters:
+        // Path: params.m_resourceId
+        // Path: params.m_userId
+        // Path: params.m_callbackName
+
+        // Implement your business logic here
+
+        // Return success response (HTTP HTTP_RESPONSE_CODE_TEST_MULTIPLE_PATH_PARAMETERS200_RESPONSE):
+        models::TestMultiplePathParameters200Response successResponse;
+        // ... populate response ...
+        return successResponse;
+    }
+
     ParametersquerypathIdGetResponse handleGetForParametersquerypathId(const ParametersquerypathIdGetRequest& params) override {
         // Access request parameters:
         // Path: params.m_pathId
@@ -766,7 +796,7 @@ Create a class that inherits from the generated base class:
 ```cpp
 #include "api/SecurityApi.h"
 
-class SecurityImpl : public api::Security {
+class SecurityImpl : public Api::Security {
 public:
     SecurityapikeyGetResponse handleGetForSecurityapikey() override {
 
@@ -895,7 +925,7 @@ This API requires authentication. Implement the `AuthenticationManager` interfac
 ```cpp
 #include "api/AuthenticationManager.h"
 
-class MyAuthManager : public api::AuthenticationManager {
+class MyAuthManager : public Api::AuthenticationManager {
 public:
     bool validateApiKey(const std::string& key) override {
         // Validate API key from header, query, or cookie

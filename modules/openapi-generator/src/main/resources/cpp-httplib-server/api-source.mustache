@@ -25,7 +25,7 @@ using namespace {{modelNamespace}};
 bool {{apiClassnameInPascalCase}}::parse{{operationIdPascalCase}}Params(const httplib::Request& req, {{apiClassnameInPascalCase}}::{{requestType}}& params, std::vector<std::string>& paramErrors)
 {
     std::vector<std::string> errors;
-{{#requestModel}}
+{{#requestModel}}{{#-first}}{{/-first}}
     if (!req.body.empty())
     {
         try
@@ -50,10 +50,7 @@ bool {{apiClassnameInPascalCase}}::parse{{operationIdPascalCase}}Params(const ht
         errors.push_back("Missing required request body");
     }{{/bodyParam.vendorExtensions.isRequired}}
 {{/requestModel}}
-{{#queryParams}}
-{{#-first}}
-
-{{/-first}}
+{{#queryParams}}{{#-first}}{{/-first}}
     // Query Parameters - {{baseName}}
     if (req.has_param("{{baseName}}"))
     {
@@ -160,12 +157,22 @@ bool {{apiClassnameInPascalCase}}::parse{{operationIdPascalCase}}Params(const ht
 {{/vendorExtensions.isOptional}}
 {{/items.vendorExtensions.isFloat}}
 {{^items.vendorExtensions.isInt}}{{^items.vendorExtensions.isLong}}{{^items.vendorExtensions.isDouble}}{{^items.vendorExtensions.isFloat}}
+{{#items.vendorExtensions.isEnum}}
+{{#vendorExtensions.isOptional}}
+                    params.m_{{paramName}}->emplace_back({{items.vendorExtensions.enumFromStringHelper}}(val));
+{{/vendorExtensions.isOptional}}
+{{^vendorExtensions.isOptional}}
+                    params.m_{{paramName}}.emplace_back({{items.vendorExtensions.enumFromStringHelper}}(val));
+{{/vendorExtensions.isOptional}}
+{{/items.vendorExtensions.isEnum}}
+{{^items.vendorExtensions.isEnum}}
 {{#vendorExtensions.isOptional}}
                     params.m_{{paramName}}->emplace_back(val);
 {{/vendorExtensions.isOptional}}
 {{^vendorExtensions.isOptional}}
                     params.m_{{paramName}}.emplace_back(val);
 {{/vendorExtensions.isOptional}}
+{{/items.vendorExtensions.isEnum}}
 {{/items.vendorExtensions.isFloat}}{{/items.vendorExtensions.isDouble}}{{/items.vendorExtensions.isLong}}{{/items.vendorExtensions.isInt}}
                 }
             }
@@ -225,9 +232,9 @@ bool {{apiClassnameInPascalCase}}::parse{{operationIdPascalCase}}Params(const ht
         catch (const std::exception& e)
         {
             errors.push_back("Invalid query parameter '{{baseName}}': " + std::string(e.what()));
-        }{{/vendorExtensions.isArray}}{{#vendorExtensions.isEnum}}try
+        }{{/vendorExtensions.isArray}}{{^vendorExtensions.isArray}}{{#vendorExtensions.isEnum}}try
         {
-            params.m_{{paramName}} = {{enumFromStringHelper}}(req.get_param_value("{{baseName}}"));
+            params.m_{{paramName}} = {{requestType}}::{{vendorExtensions.enumFromStringHelper}}(req.get_param_value("{{baseName}}"));
         }
         catch (const std::exception& e)
         {
@@ -267,8 +274,8 @@ bool {{apiClassnameInPascalCase}}::parse{{operationIdPascalCase}}Params(const ht
         catch (const std::exception& e)
         {
             errors.push_back("Invalid query parameter '{{baseName}}': " + std::string(e.what()));
-        }{{/vendorExtensions.isFloat}}{{^vendorExtensions.isObject}}{{^vendorExtensions.isArray}}{{^vendorExtensions.isEnum}}{{^vendorExtensions.isString}}{{^vendorExtensions.isInt}}{{^vendorExtensions.isLong}}{{^vendorExtensions.isBool}}{{^vendorExtensions.isDouble}}{{^vendorExtensions.isFloat}}// Fallback: direct assignment
-        params.m_{{paramName}} = req.get_param_value("{{baseName}}");{{/vendorExtensions.isFloat}}{{/vendorExtensions.isDouble}}{{/vendorExtensions.isBool}}{{/vendorExtensions.isLong}}{{/vendorExtensions.isInt}}{{/vendorExtensions.isString}}{{/vendorExtensions.isEnum}}{{/vendorExtensions.isArray}}{{/vendorExtensions.isObject}}
+        }{{/vendorExtensions.isFloat}}{{^vendorExtensions.isObject}}{{^vendorExtensions.isEnum}}{{^vendorExtensions.isString}}{{^vendorExtensions.isInt}}{{^vendorExtensions.isLong}}{{^vendorExtensions.isBool}}{{^vendorExtensions.isDouble}}{{^vendorExtensions.isFloat}}// Fallback: direct assignment
+        params.m_{{paramName}} = req.get_param_value("{{baseName}}");{{/vendorExtensions.isFloat}}{{/vendorExtensions.isDouble}}{{/vendorExtensions.isBool}}{{/vendorExtensions.isLong}}{{/vendorExtensions.isInt}}{{/vendorExtensions.isString}}{{/vendorExtensions.isEnum}}{{/vendorExtensions.isObject}}{{/vendorExtensions.isArray}}
     }{{^vendorExtensions.isRequired}}{{#vendorExtensions.hasDefaultValue}}
     else
     {
@@ -276,10 +283,7 @@ bool {{apiClassnameInPascalCase}}::parse{{operationIdPascalCase}}Params(const ht
         params.m_{{paramName}} = {{{vendorExtensions.defaultValue}}};
     }{{/vendorExtensions.hasDefaultValue}}{{/vendorExtensions.isRequired}}
 {{/queryParams}}
-{{#headerParams}}
-{{#-first}}
-
-{{/-first}}
+{{#headerParams}}{{#-first}}{{/-first}}
     // Header Parameters - {{baseName}}
     if (!req.get_header_value("{{baseName}}").empty())
     {
@@ -318,9 +322,9 @@ bool {{apiClassnameInPascalCase}}::parse{{operationIdPascalCase}}Params(const ht
         catch (const std::exception& e)
         {
             errors.push_back("Invalid header parameter '{{baseName}}': " + std::string(e.what()));
-        }{{/vendorExtensions.isArray}}{{#vendorExtensions.isEnum}}try
+        }{{/vendorExtensions.isArray}}{{^vendorExtensions.isArray}}{{#vendorExtensions.isEnum}}try
         {
-            params.m_{{paramName}} = {{enumFromStringHelper}}(req.get_header_value("{{baseName}}"));
+            params.m_{{paramName}} = {{requestType}}::{{vendorExtensions.enumFromStringHelper}}(req.get_header_value("{{baseName}}"));
         }
         catch (const std::exception& e)
         {
@@ -360,8 +364,8 @@ bool {{apiClassnameInPascalCase}}::parse{{operationIdPascalCase}}Params(const ht
         catch (const std::exception& e)
         {
             errors.push_back("Invalid header parameter '{{baseName}}': " + std::string(e.what()));
-        }{{/vendorExtensions.isFloat}}{{^vendorExtensions.isObject}}{{^vendorExtensions.isArray}}{{^vendorExtensions.isEnum}}{{^vendorExtensions.isString}}{{^vendorExtensions.isInt}}{{^vendorExtensions.isLong}}{{^vendorExtensions.isBool}}{{^vendorExtensions.isDouble}}{{^vendorExtensions.isFloat}}// Fallback: direct assignment
-        params.m_{{paramName}} = req.get_header_value("{{baseName}}");{{/vendorExtensions.isFloat}}{{/vendorExtensions.isDouble}}{{/vendorExtensions.isBool}}{{/vendorExtensions.isLong}}{{/vendorExtensions.isInt}}{{/vendorExtensions.isString}}{{/vendorExtensions.isEnum}}{{/vendorExtensions.isArray}}{{/vendorExtensions.isObject}}
+        }{{/vendorExtensions.isFloat}}{{^vendorExtensions.isObject}}{{^vendorExtensions.isEnum}}{{^vendorExtensions.isString}}{{^vendorExtensions.isInt}}{{^vendorExtensions.isLong}}{{^vendorExtensions.isBool}}{{^vendorExtensions.isDouble}}{{^vendorExtensions.isFloat}}// Fallback: direct assignment
+        params.m_{{paramName}} = req.get_header_value("{{baseName}}");{{/vendorExtensions.isFloat}}{{/vendorExtensions.isDouble}}{{/vendorExtensions.isBool}}{{/vendorExtensions.isLong}}{{/vendorExtensions.isInt}}{{/vendorExtensions.isString}}{{/vendorExtensions.isEnum}}{{/vendorExtensions.isObject}}{{/vendorExtensions.isArray}}
     }{{^vendorExtensions.isRequired}}{{#vendorExtensions.hasDefaultValue}}
     else
     {
@@ -369,10 +373,7 @@ bool {{apiClassnameInPascalCase}}::parse{{operationIdPascalCase}}Params(const ht
         params.m_{{paramName}} = {{{vendorExtensions.defaultValue}}};
     }{{/vendorExtensions.hasDefaultValue}}{{/vendorExtensions.isRequired}}
 {{/headerParams}}
-{{#pathParams}}
-{{#-first}}
-
-{{/-first}}
+{{#pathParams}}{{#-first}}{{/-first}}
     // Path Parameters - {{baseName}} (index: {{vendorExtensions.pathIndex}})
     if (req.matches.size() < {{vendorExtensions.pathIndex}} + 1)
     {
@@ -400,17 +401,27 @@ bool {{apiClassnameInPascalCase}}::parse{{operationIdPascalCase}}Params(const ht
             {
                 if (!item.empty())
                 {
+{{#items.vendorExtensions.isEnum}}
+{{#vendorExtensions.isOptional}}
+                    params.m_{{paramName}}->emplace_back({{items.vendorExtensions.enumFromStringHelper}}(val));
+{{/vendorExtensions.isOptional}}
+{{^vendorExtensions.isOptional}}
+                    params.m_{{paramName}}.emplace_back({{items.vendorExtensions.enumFromStringHelper}}(val));
+{{/vendorExtensions.isOptional}}
+{{/items.vendorExtensions.isEnum}}
+{{^items.vendorExtensions.isEnum}}
 {{#vendorExtensions.isOptional}}
                     params.m_{{paramName}}->emplace_back(item);
 {{/vendorExtensions.isOptional}}
 {{^vendorExtensions.isOptional}}
                     params.m_{{paramName}}.emplace_back(item);
 {{/vendorExtensions.isOptional}}
+{{/items.vendorExtensions.isEnum}}
                 }
             }
-            {{/vendorExtensions.isArray}}
+                {{/vendorExtensions.isArray}}
             {{#vendorExtensions.isEnum}}
-            params.m_{{paramName}} = {{enumFromStringHelper}}(req.matches[{{vendorExtensions.pathIndex}}]);
+            params.m_{{paramName}} = {{requestType}}::{{vendorExtensions.enumFromStringHelper}}(req.matches[{{vendorExtensions.pathIndex}}]);
             {{/vendorExtensions.isEnum}}
             {{#vendorExtensions.isString}}
             params.m_{{paramName}} = req.matches[{{vendorExtensions.pathIndex}}];
@@ -437,10 +448,8 @@ bool {{apiClassnameInPascalCase}}::parse{{operationIdPascalCase}}Params(const ht
         }
     }
 {{/pathParams}}
-{{#cookieParams}}
-{{#-first}}
+{{#cookieParams}}{{#-first}}{{/-first}}
 
-{{/-first}}
     // Cookie Parameters - {{baseName}}
     try
     {
@@ -467,20 +476,25 @@ bool {{apiClassnameInPascalCase}}::parse{{operationIdPascalCase}}Params(const ht
                 {
                     if (!item.empty())
                     {
+{{#items.vendorExtensions.isEnum}}
+{{#vendorExtensions.isOptional}}
+                        params.m_{{paramName}}->emplace_back({{items.vendorExtensions.enumFromStringHelper}}(item));
+{{/vendorExtensions.isOptional}}
+{{^vendorExtensions.isOptional}}
+                        params.m_{{paramName}}.emplace_back({{items.vendorExtensions.enumFromStringHelper}}(item));
+{{/vendorExtensions.isOptional}}
+{{/items.vendorExtensions.isEnum}}
+{{^items.vendorExtensions.isEnum}}
 {{#vendorExtensions.isOptional}}
                         params.m_{{paramName}}->emplace_back(item);
 {{/vendorExtensions.isOptional}}
 {{^vendorExtensions.isOptional}}
                         params.m_{{paramName}}.emplace_back(item);
 {{/vendorExtensions.isOptional}}
+{{/items.vendorExtensions.isEnum}}
                     }
-                }{{/vendorExtensions.isArray}}{{#vendorExtensions.isEnum}}params.m_{{paramName}} = {{enumFromStringHelper}}(cookieValue);{{/vendorExtensions.isEnum}}{{#vendorExtensions.isString}}params.m_{{paramName}} = cookieValue;{{/vendorExtensions.isString}}{{#vendorExtensions.isInt}}params.m_{{paramName}} = std::stoi(cookieValue);{{/vendorExtensions.isInt}}{{#vendorExtensions.isLong}}params.m_{{paramName}} = std::stoll(cookieValue);{{/vendorExtensions.isLong}}{{#vendorExtensions.isBool}}params.m_{{paramName}} = (cookieValue == "true");{{/vendorExtensions.isBool}}{{#vendorExtensions.isDouble}}params.m_{{paramName}} = std::stod(cookieValue);{{/vendorExtensions.isDouble}}{{#vendorExtensions.isFloat}}params.m_{{paramName}} = std::stof(cookieValue);{{/vendorExtensions.isFloat}}{{^vendorExtensions.isObject}}{{^vendorExtensions.isArray}}{{^vendorExtensions.isEnum}}{{^vendorExtensions.isString}}{{^vendorExtensions.isInt}}{{^vendorExtensions.isLong}}{{^vendorExtensions.isBool}}{{^vendorExtensions.isDouble}}{{^vendorExtensions.isFloat}}params.m_{{paramName}} = cookieValue;{{/vendorExtensions.isFloat}}{{/vendorExtensions.isDouble}}{{/vendorExtensions.isBool}}{{/vendorExtensions.isLong}}{{/vendorExtensions.isInt}}{{/vendorExtensions.isString}}{{/vendorExtensions.isEnum}}{{/vendorExtensions.isArray}}{{/vendorExtensions.isObject}}
-            }{{^vendorExtensions.isRequired}}{{#vendorExtensions.hasDefaultValue}}
-            else
-            {
-                // Use default value for optional parameter
-                params.m_{{paramName}} = {{{vendorExtensions.defaultValue}}};
-            }{{/vendorExtensions.hasDefaultValue}}{{/vendorExtensions.isRequired}}
+                }{{/vendorExtensions.isArray}}{{#vendorExtensions.isEnum}}params.m_{{paramName}} = {{requestType}}::{{vendorExtensions.enumFromStringHelper}}(cookieValue);{{/vendorExtensions.isEnum}}{{^vendorExtensions.isEnum}}{{#vendorExtensions.isInt}}params.m_{{paramName}} = std::stoi(cookieValue);{{/vendorExtensions.isInt}}{{#vendorExtensions.isLong}}params.m_{{paramName}} = std::stoll(cookieValue);{{/vendorExtensions.isLong}}{{#vendorExtensions.isBool}}params.m_{{paramName}} = (cookieValue == "true");{{/vendorExtensions.isBool}}{{#vendorExtensions.isDouble}}params.m_{{paramName}} = std::stod(cookieValue);{{/vendorExtensions.isDouble}}{{#vendorExtensions.isFloat}}params.m_{{paramName}} = std::stof(cookieValue);{{/vendorExtensions.isFloat}}{{#vendorExtensions.isString}}params.m_{{paramName}} = cookieValue;{{/vendorExtensions.isString}}{{/vendorExtensions.isEnum}}
+            }
         }{{^vendorExtensions.isRequired}}{{#vendorExtensions.hasDefaultValue}}
         else
         {
@@ -744,7 +758,7 @@ void {{apiClassnameInPascalCase}}::registerRoutes(httplib::Server& svr{{#hasAnyA
     {{#operations}}
     {{#operation}}
     {{#vendorExtensions}}
-    svr.{{httpMethod}}("{{path}}", [this{{#hasAuth}}, auth{{/hasAuth}}]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    svr.{{httpMethod}}("{{httplibPath}}", [this{{#hasAuth}}, auth{{/hasAuth}}]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
     {
         handle{{operationIdPascalCase}}Request(req, res{{#hasAuth}}, auth{{/hasAuth}});
     });

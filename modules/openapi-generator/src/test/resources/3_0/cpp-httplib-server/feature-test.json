@@ -31,7 +31,9 @@
   "paths": {
     "/datatypes/primitives": {
       "post": {
-        "tags": ["datatypes"],
+        "tags": [
+          "datatypes"
+        ],
         "operationId": "testPrimitiveTypes",
         "summary": "Test all primitive data types",
         "requestBody": {
@@ -70,7 +72,9 @@
     },
     "/datatypes/arrays": {
       "post": {
-        "tags": ["datatypes"],
+        "tags": [
+          "datatypes"
+        ],
         "operationId": "testArrayTypes",
         "summary": "Test array data types",
         "requestBody": {
@@ -99,7 +103,9 @@
     },
     "/datatypes/enums": {
       "post": {
-        "tags": ["datatypes"],
+        "tags": [
+          "datatypes"
+        ],
         "operationId": "testEnumTypes",
         "summary": "Test enum types including numeric enums",
         "requestBody": {
@@ -128,7 +134,9 @@
     },
     "/parameters/query/{pathId}": {
       "get": {
-        "tags": ["parameters"],
+        "tags": [
+          "parameters"
+        ],
         "operationId": "testQueryParameters",
         "summary": "Test all query parameter types and styles",
         "parameters": [
@@ -240,9 +248,63 @@
         }
       }
     },
+    "/parameters/resources/{resourceId}/users/{userId}/callbacks/{callbackName}": {
+      "get": {
+        "tags": [
+          "parameters"
+        ],
+        "operationId": "testMultiplePathParameters",
+        "summary": "Test multiple path parameters",
+        "parameters": [
+          {
+            "name": "resourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "callbackName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/parameters/headers": {
       "get": {
-        "tags": ["parameters"],
+        "tags": [
+          "parameters"
+        ],
         "operationId": "testHeaderParameters",
         "summary": "Test header parameters",
         "parameters": [
@@ -298,7 +360,7 @@
               }
             }
           },
-        "401": {
+          "401": {
             "description": "NoSuccess",
             "content": {
               "application/json": {
@@ -318,7 +380,9 @@
     },
     "/parameters/cookies": {
       "get": {
-        "tags": ["parameters"],
+        "tags": [
+          "parameters"
+        ],
         "operationId": "testCookieParameters",
         "summary": "Test cookie parameters",
         "parameters": [
@@ -340,6 +404,35 @@
           },
           {
             "name": "preferences",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "authToken",
+            "in": "cookie",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "role",
+            "in": "cookie",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "admin",
+                "user",
+                "guest"
+              ]
+            }
+          },
+          {
+            "name": "userPrefs",
             "in": "cookie",
             "required": false,
             "schema": {
@@ -368,7 +461,9 @@
     },
     "/parameters/combined/{resourceId}": {
       "post": {
-        "tags": ["parameters"],
+        "tags": [
+          "parameters"
+        ],
         "operationId": "testAllParameterTypes",
         "summary": "Test all parameter types combined (path + query + header + cookie + body)",
         "parameters": [
@@ -389,6 +484,19 @@
             }
           },
           {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "inactive",
+                "pending"
+              ]
+            }
+          },
+          {
             "name": "limit",
             "in": "query",
             "required": false,
@@ -403,6 +511,18 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "X-Status",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "enabled",
+                "disabled"
+              ]
             }
           },
           {
@@ -480,7 +600,9 @@
     },
     "/composition/allof": {
       "post": {
-        "tags": ["composition"],
+        "tags": [
+          "composition"
+        ],
         "operationId": "testAllOfComposition",
         "summary": "Test allOf schema composition",
         "requestBody": {
@@ -509,7 +631,9 @@
     },
     "/composition/anyof": {
       "post": {
-        "tags": ["composition"],
+        "tags": [
+          "composition"
+        ],
         "operationId": "testAnyOfComposition",
         "summary": "Test anyOf schema composition",
         "requestBody": {
@@ -538,7 +662,9 @@
     },
     "/composition/oneof": {
       "post": {
-        "tags": ["composition"],
+        "tags": [
+          "composition"
+        ],
         "operationId": "testOneOfComposition",
         "summary": "Test oneOf schema composition",
         "requestBody": {
@@ -567,7 +693,9 @@
     },
     "/security/apikey": {
       "get": {
-        "tags": ["security"],
+        "tags": [
+          "security"
+        ],
         "operationId": "testApiKeySecurity",
         "summary": "Test API Key authentication",
         "security": [
@@ -606,7 +734,9 @@
     },
     "/security/bearer": {
       "get": {
-        "tags": ["security"],
+        "tags": [
+          "security"
+        ],
         "operationId": "testBearerSecurity",
         "summary": "Test Bearer token authentication",
         "security": [
@@ -645,7 +775,9 @@
     },
     "/security/basic": {
       "get": {
-        "tags": ["security"],
+        "tags": [
+          "security"
+        ],
         "operationId": "testBasicSecurity",
         "summary": "Test Basic authentication",
         "security": [
@@ -684,12 +816,17 @@
     },
     "/security/oauth2": {
       "get": {
-        "tags": ["security"],
+        "tags": [
+          "security"
+        ],
         "operationId": "testOAuth2Security",
         "summary": "Test OAuth2 authentication",
         "security": [
           {
-            "OAuth2": ["read:users", "write:users"]
+            "OAuth2": [
+              "read:users",
+              "write:users"
+            ]
           }
         ],
         "responses": {
@@ -723,7 +860,9 @@
     },
     "/responses/multiple": {
       "get": {
-        "tags": ["datatypes"],
+        "tags": [
+          "datatypes"
+        ],
         "operationId": "testMultipleResponses",
         "summary": "Test multiple response status codes",
         "parameters": [
@@ -733,7 +872,12 @@
             "required": true,
             "schema": {
               "type": "string",
-              "enum": ["success", "created", "notfound", "error"]
+              "enum": [
+                "success",
+                "created",
+                "notfound",
+                "error"
+              ]
             }
           }
         ],
@@ -783,7 +927,9 @@
     },
     "/responses/nocontent": {
       "delete": {
-        "tags": ["datatypes"],
+        "tags": [
+          "datatypes"
+        ],
         "operationId": "testNoContentResponse",
         "summary": "Test 204 No Content response",
         "parameters": [
@@ -805,7 +951,9 @@
     },
     "/nullable/optional": {
       "post": {
-        "tags": ["datatypes"],
+        "tags": [
+          "datatypes"
+        ],
         "operationId": "testNullableOptional",
         "summary": "Test nullable and optional fields",
         "requestBody": {
@@ -834,7 +982,9 @@
     },
     "/nested/objects": {
       "post": {
-        "tags": ["datatypes"],
+        "tags": [
+          "datatypes"
+        ],
         "operationId": "testNestedObjects",
         "summary": "Test deeply nested object structures",
         "requestBody": {
@@ -894,7 +1044,11 @@
     "schemas": {
       "PrimitiveTypes": {
         "type": "object",
-        "required": ["stringField", "intField", "boolField"],
+        "required": [
+          "stringField",
+          "intField",
+          "boolField"
+        ],
         "properties": {
           "stringField": {
             "type": "string",
@@ -975,7 +1129,11 @@
             "type": "array",
             "items": {
               "type": "string",
-              "enum": ["red", "green", "blue"]
+              "enum": [
+                "red",
+                "green",
+                "blue"
+              ]
             }
           },
           "nestedArray": {
@@ -994,21 +1152,38 @@
         "properties": {
           "stringEnum": {
             "type": "string",
-            "enum": ["pending", "approved", "rejected"]
+            "enum": [
+              "pending",
+              "approved",
+              "rejected"
+            ]
           },
           "numericEnum": {
             "type": "integer",
-            "enum": [100, 200, 300, 404, 500]
+            "enum": [
+              100,
+              200,
+              300,
+              404,
+              500
+            ]
           },
           "statusCode": {
             "type": "string",
-            "enum": ["200", "404", "500"]
+            "enum": [
+              "200",
+              "404",
+              "500"
+            ]
           }
         }
       },
       "SimpleObject": {
         "type": "object",
-        "required": ["id", "name"],
+        "required": [
+          "id",
+          "name"
+        ],
         "properties": {
           "id": {
             "type": "integer"
@@ -1023,7 +1198,10 @@
       },
       "Animal": {
         "type": "object",
-        "required": ["name", "type"],
+        "required": [
+          "name",
+          "type"
+        ],
         "properties": {
           "name": {
             "type": "string"
@@ -1040,7 +1218,9 @@
           },
           {
             "type": "object",
-            "required": ["breed"],
+            "required": [
+              "breed"
+            ],
             "properties": {
               "breed": {
                 "type": "string"
@@ -1064,7 +1244,11 @@
       },
       "CreditCard": {
         "type": "object",
-        "required": ["paymentType", "cardNumber", "cardType"],
+        "required": [
+          "paymentType",
+          "cardNumber",
+          "cardType"
+        ],
         "properties": {
           "paymentType": {
             "type": "string"
@@ -1074,13 +1258,21 @@
           },
           "cardType": {
             "type": "string",
-            "enum": ["visa", "mastercard", "amex"]
+            "enum": [
+              "visa",
+              "mastercard",
+              "amex"
+            ]
           }
         }
       },
       "BankAccount": {
         "type": "object",
-        "required": ["paymentType", "accountNumber", "bankName"],
+        "required": [
+          "paymentType",
+          "accountNumber",
+          "bankName"
+        ],
         "properties": {
           "paymentType": {
             "type": "string"
@@ -1112,7 +1304,9 @@
       },
       "NullableOptionalTypes": {
         "type": "object",
-        "required": ["requiredField"],
+        "required": [
+          "requiredField"
+        ],
         "properties": {
           "requiredField": {
             "type": "string"
@@ -1136,7 +1330,10 @@
       },
       "Address": {
         "type": "object",
-        "required": ["street", "city"],
+        "required": [
+          "street",
+          "city"
+        ],
         "properties": {
           "street": {
             "type": "string"
@@ -1155,7 +1352,11 @@
       },
       "Employee": {
         "type": "object",
-        "required": ["id", "name", "email"],
+        "required": [
+          "id",
+          "name",
+          "email"
+        ],
         "properties": {
           "id": {
             "type": "integer"
@@ -1179,7 +1380,10 @@
       },
       "Department": {
         "type": "object",
-        "required": ["name", "manager"],
+        "required": [
+          "name",
+          "manager"
+        ],
         "properties": {
           "name": {
             "type": "string"
@@ -1197,7 +1401,9 @@
       },
       "Company": {
         "type": "object",
-        "required": ["name"],
+        "required": [
+          "name"
+        ],
         "properties": {
           "name": {
             "type": "string"
@@ -1219,7 +1425,10 @@
       },
       "SuccessResponse": {
         "type": "object",
-        "required": ["status", "data"],
+        "required": [
+          "status",
+          "data"
+        ],
         "properties": {
           "status": {
             "type": "string"
@@ -1231,7 +1440,10 @@
       },
       "CreatedResponse": {
         "type": "object",
-        "required": ["status", "id"],
+        "required": [
+          "status",
+          "id"
+        ],
         "properties": {
           "status": {
             "type": "string"
@@ -1246,7 +1458,9 @@
       },
       "NotFoundResponse": {
         "type": "object",
-        "required": ["error"],
+        "required": [
+          "error"
+        ],
         "properties": {
           "error": {
             "type": "string"
@@ -1258,7 +1472,9 @@
       },
       "ErrorResponse": {
         "type": "object",
-        "required": ["message"],
+        "required": [
+          "message"
+        ],
         "properties": {
           "message": {
             "type": "string"

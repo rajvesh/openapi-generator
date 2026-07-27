@@ -19,10 +19,11 @@
 #include "models/TestCookieParameters200Response.h"
 #include "models/TestHeaderParameters200Response.h"
 #include "models/TestHeaderParameters401Response.h"
+#include "models/TestMultiplePathParameters200Response.h"
 #include "models/TestQueryParameters200Response.h"
 #include "models/TestQueryParametersDeepObjectParameter.h"
 
-namespace api {
+namespace Api {
     class AuthenticationManager;
 class Parameters {
 public:
@@ -42,10 +43,27 @@ public:
     */
     struct ParameterscombinedresourceIdPostRequest
     {
+        enum class StatusEnum {
+            UNSPECIFIED,
+            ACTIVE,
+            INACTIVE,
+            PENDING
+        };
+        static std::string statusEnumToString(StatusEnum value);
+        static StatusEnum statusEnumFromString(const std::string& str);
+        enum class XStatusEnum {
+            UNSPECIFIED,
+            ENABLED,
+            DISABLED
+        };
+        static std::string xStatusEnumToString(XStatusEnum value);
+        static XStatusEnum xStatusEnumFromString(const std::string& str);
         std::optional<models::SimpleObject> m_request; //Request Body (optional)
         std::string m_filter; //Query Params (required)
+        StatusEnum m_status; //Query Params (optional)
         std::optional<int> m_limit; //Query Params (optional)
         std::string m_xCorrelationId; //HeaderParams (required)
+        XStatusEnum m_xStatus; //HeaderParams (optional)
         std::optional<std::string> m_xClientVersion; //HeaderParams (optional)
         int m_resourceId; //PathParams (always required)
         std::string m_authToken; //Cookies (required)
@@ -57,10 +75,20 @@ public:
     */
     struct ParameterscookiesGetRequest
     {
-
+        enum class RoleEnum {
+            UNSPECIFIED,
+            ADMIN,
+            USER,
+            GUEST
+        };
+        static std::string roleEnumToString(RoleEnum value);
+        static RoleEnum roleEnumFromString(const std::string& str);
         std::string m_sessionId; //Cookies (required)
         std::optional<int> m_userId; //Cookies (optional)
         std::optional<std::string> m_preferences; //Cookies (optional)
+        std::string m_authToken; //Cookies (required)
+        RoleEnum m_role; //Cookies (optional)
+        std::optional<std::string> m_userPrefs; //Cookies (optional)
     };
 
     /**
@@ -68,7 +96,6 @@ public:
     */
     struct ParametersheadersGetRequest
     {
-
         std::string m_xApiVersion; //HeaderParams (required)
         std::optional<std::string> m_xRequestId; //HeaderParams (optional)
         std::optional<int> m_xRateLimit; //HeaderParams (optional)
@@ -76,11 +103,20 @@ public:
     };
 
     /**
+    * @brief Request type for handleGetForParametersresourcesresourceIdusersuserIdcallbackscallbackName.
+    */
+    struct ParametersresourcesresourceIdusersuserIdcallbackscallbackNameGetRequest
+    {
+        int m_resourceId; //PathParams (always required)
+        std::string m_userId; //PathParams (always required)
+        std::string m_callbackName; //PathParams (always required)
+    };
+
+    /**
     * @brief Request type for handleGetForParametersquerypathId.
     */
     struct ParametersquerypathIdGetRequest
     {
-
         std::string m_stringParam; //Query Params (required)
         std::optional<int> m_intParam; //Query Params (optional)
         std::optional<bool> m_boolParam; //Query Params (optional)
@@ -115,6 +151,11 @@ public:
                                         models::TestHeaderParameters401Response >;
 
     /**
+    * @brief Response type for handleGetForParametersresourcesresourceIdusersuserIdcallbackscallbackName.
+    */
+    using ParametersresourcesresourceIdusersuserIdcallbackscallbackNameGetResponse = models::TestMultiplePathParameters200Response;
+
+    /**
     * @brief Response type for handleGetForParametersquerypathId.
     */
     using ParametersquerypathIdGetResponse = models::TestQueryParameters200Response;
@@ -140,6 +181,12 @@ public:
     virtual ParametersheadersGetResponse handleGetForParametersheaders(const ParametersheadersGetRequest& params)=0;
 
     /**
+     * ParametersresourcesresourceIdusersuserIdcallbackscallbackNameGetRequest - struct containing all the query parameters and headers and schemas as available.
+     * @return ParametersresourcesresourceIdusersuserIdcallbackscallbackNameGetResponse The response type returned by the handler.
+     */
+    virtual ParametersresourcesresourceIdusersuserIdcallbackscallbackNameGetResponse handleGetForParametersresourcesresourceIdusersuserIdcallbackscallbackName(const ParametersresourcesresourceIdusersuserIdcallbackscallbackNameGetRequest& params)=0;
+
+    /**
      * ParametersquerypathIdGetRequest - struct containing all the query parameters and headers and schemas as available.
      * @return ParametersquerypathIdGetResponse The response type returned by the handler.
      */
@@ -158,9 +205,12 @@ private:
     static bool parseParametersheadersGetParams(const httplib::Request& req, ParametersheadersGetRequest& params, std::vector<std::string>& paramErrors);
     void handleParametersheadersGetRequest(const httplib::Request& req, httplib::Response& res);
     static void handleParametersheadersGetResponse(const ParametersheadersGetResponse& result, httplib::Response& res);
+    static bool parseParametersresourcesresourceIdusersuserIdcallbackscallbackNameGetParams(const httplib::Request& req, ParametersresourcesresourceIdusersuserIdcallbackscallbackNameGetRequest& params, std::vector<std::string>& paramErrors);
+    void handleParametersresourcesresourceIdusersuserIdcallbackscallbackNameGetRequest(const httplib::Request& req, httplib::Response& res);
+    static void handleParametersresourcesresourceIdusersuserIdcallbackscallbackNameGetResponse(const ParametersresourcesresourceIdusersuserIdcallbackscallbackNameGetResponse& result, httplib::Response& res);
     static bool parseParametersquerypathIdGetParams(const httplib::Request& req, ParametersquerypathIdGetRequest& params, std::vector<std::string>& paramErrors);
     void handleParametersquerypathIdGetRequest(const httplib::Request& req, httplib::Response& res);
     static void handleParametersquerypathIdGetResponse(const ParametersquerypathIdGetResponse& result, httplib::Response& res);
 };
 
-} // namespace api
+} // namespace Api

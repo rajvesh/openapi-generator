@@ -17,7 +17,7 @@
 #include "models/PaymentMethod.h"
 #include "models/StringOrNumber.h"
 
-namespace api {
+namespace Api {
     class AuthenticationManager;
 class Composition {
 public:
@@ -110,4 +110,4 @@ private:
     static void handleCompositiononeofPostResponse(const CompositiononeofPostResponse& result, httplib::Response& res);
 };
 
-} // namespace api
+} // namespace Api

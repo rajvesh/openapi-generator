@@ -11,13 +11,16 @@
 
 // Project headers
 #include "StoreApi.h"
+#include "AuthenticationManager.h"
 
+constexpr int HTTP_RESPONSE_CODE_PRIMITIVE_INTEGER = 200;
 constexpr int HTTP_RESPONSE_CODE_ORDER = 200;
 constexpr int HTTP_RESPONSE_CODE_NO_CONTENT = 204;
 constexpr int HTTP_RESPONSE_CODE_BAD_REQUEST = 400;
+constexpr int HTTP_RESPONSE_CODE_UNAUTHORIZED = 401;
 constexpr int HTTP_RESPONSE_CODE_INTERNAL_SERVER_ERROR = 500;
 
-namespace api {
+namespace Api {
 
 using namespace models;
 
@@ -34,7 +37,7 @@ bool Store::parseStoreorderorderIdDeleteParams(const httplib::Request& req, Stor
     {
         try
         {
-            params.m_orderId = std::stoll(req.matches[1]);
+            params.m_orderId = req.matches[1];
         }
         catch (const std::exception& e)
         {
@@ -49,6 +52,14 @@ bool Store::parseStoreorderorderIdDeleteParams(const httplib::Request& req, Stor
         return false;
     }
     return true;
+}
+void Store::handleStoreinventoryGetResponse(const StoreinventoryGetResponse& result, httplib::Response& res)
+{
+    // Single response type
+    res.status = HTTP_RESPONSE_CODE_PRIMITIVE_INTEGER;
+    nlohmann::json responseJson;
+    to_json(responseJson, result);
+    res.set_content(responseJson.dump(), "application/json");
 }
 bool Store::parseStoreorderorderIdGetParams(const httplib::Request& req, Store::StoreorderorderIdGetRequest& params, std::vector<std::string>& paramErrors)
 {
@@ -90,6 +101,7 @@ void Store::handleStoreorderorderIdGetResponse(const StoreorderorderIdGetRespons
 bool Store::parseStoreorderPostParams(const httplib::Request& req, Store::StoreorderPostRequest& params, std::vector<std::string>& paramErrors)
 {
     std::vector<std::string> errors;
+
     if (!req.body.empty())
     {
         try
@@ -124,6 +136,30 @@ void Store::handleStoreorderPostResponse(const StoreorderPostResponse& result, h
     res.set_content(responseJson.dump(), "application/json");
 }
 
+bool Store::performAuthentication(
+    const httplib::Request& req,
+    std::shared_ptr<AuthenticationManager> auth,
+    httplib::Response& res)
+{
+    if (!auth)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "AuthenticationManager not configured";
+        res.status = HTTP_RESPONSE_CODE_INTERNAL_SERVER_ERROR;
+        res.set_content(errorJson.dump(), "application/json");
+        return false;
+    }
+
+    if (req.has_header("api_key"))
+    {
+        if (auth->validateApiKey(req.get_header_value("api_key"))) return true;
+    }
+
+
+
+
+    return false;
+}
 
 void Store::handleStoreorderorderIdDeleteRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
 {
@@ -144,6 +180,32 @@ void Store::handleStoreorderorderIdDeleteRequest([[maybe_unused]] const httplib:
 
         handleDeleteForStoreorderorderId(params);
         res.status = HTTP_RESPONSE_CODE_NO_CONTENT;
+
+    }
+    catch (const std::exception& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Internal error: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_INTERNAL_SERVER_ERROR;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+}
+
+void Store::handleStoreinventoryGetRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res, std::shared_ptr<AuthenticationManager> auth)
+{
+    try
+    {
+        if (!performAuthentication(req, auth, res))
+        {
+            nlohmann::json errorJson = nlohmann::json::object();
+            errorJson["message"] = "Authentication required";
+            res.status = HTTP_RESPONSE_CODE_UNAUTHORIZED;
+            res.set_content(errorJson.dump(), "application/json");
+            return;
+        }
+
+        auto result = handleGetForStoreinventory();
+        handleStoreinventoryGetResponse(result, res);
 
     }
     catch (const std::exception& e)
@@ -242,13 +304,17 @@ void Store::handleStoreorderPostRequest([[maybe_unused]] const httplib::Request&
 }
 
 
-void Store::registerRoutes(httplib::Server& svr)
+void Store::registerRoutes(httplib::Server& svr, std::shared_ptr<AuthenticationManager> auth)
 {
-    svr.Delete("/store/order/{orderId}", [this]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    svr.Delete("/store/order/([^/]+)", [this]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
     {
         handleStoreorderorderIdDeleteRequest(req, res);
     });
-    svr.Get("/store/order/{orderId}", [this]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    svr.Get("/store/inventory", [this, auth]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    {
+        handleStoreinventoryGetRequest(req, res, auth);
+    });
+    svr.Get("/store/order/([^/]+)", [this]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
     {
         handleStoreorderorderIdGetRequest(req, res);
     });
@@ -258,4 +324,4 @@ void Store::registerRoutes(httplib::Server& svr)
     });
 }
 
-} // namespace api
+} // namespace Api

@@ -10,11 +10,11 @@ namespace models {
 
 Pet::Pet()
 : id(0)
+, category(Category())
 , name("")
 , photoUrls(std::vector<std::string>())
-, status(std::nullopt)
-, category(Category())
 , tags(std::vector<Tag>())
+, status(std::nullopt)
 {
 }
 // =========================================
@@ -27,6 +27,10 @@ long Pet::getId() const
 {
     return id;
 }
+Category Pet::getCategory() const
+{
+    return category;
+}
 std::string Pet::getName() const
 {
     return name;
@@ -35,17 +39,13 @@ std::vector<std::string> Pet::getPhotoUrls() const
 {
     return photoUrls;
 }
-std::optional<Pet::StatusEnum> Pet::getStatus() const
-{
-    return status;
-}
-Category Pet::getCategory() const
-{
-    return category;
-}
 std::vector<Tag> Pet::getTags() const
 {
     return tags;
+}
+std::optional<Pet::StatusEnum> Pet::getStatus() const
+{
+    return status;
 }
 
 // ===================
@@ -55,6 +55,10 @@ void Pet::setId(const long& idObj)
 {
     id = idObj;
 }
+void Pet::setCategory(const Category& categoryObj)
+{
+    category = categoryObj;
+}
 void Pet::setName(const std::string& nameObj)
 {
     name = nameObj;
@@ -63,17 +67,13 @@ void Pet::setPhotoUrls(const std::vector<std::string>& photoUrlsObj)
 {
     photoUrls = photoUrlsObj;
 }
-void Pet::setStatus(const std::optional<StatusEnum>& statusObj)
-{
-    status = statusObj;
-}
-void Pet::setCategory(const Category& categoryObj)
-{
-    category = categoryObj;
-}
 void Pet::setTags(const std::vector<Tag>& tagsObj)
 {
     tags = tagsObj;
+}
+void Pet::setStatus(const std::optional<StatusEnum>& statusObj)
+{
+    status = statusObj;
 }
 
 

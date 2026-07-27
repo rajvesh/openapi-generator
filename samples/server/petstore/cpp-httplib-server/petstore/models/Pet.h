@@ -39,16 +39,16 @@ public:
     // Getters and setters
     [[nodiscard]] long getId() const;
     void setId(const long& id);
+    [[nodiscard]] Category getCategory() const;
+    void setCategory(const Category& category);
     [[nodiscard]] std::string getName() const;
     void setName(const std::string& name);
     [[nodiscard]] std::vector<std::string> getPhotoUrls() const;
     void setPhotoUrls(const std::vector<std::string>& photoUrls);
-    [[nodiscard]] std::optional<StatusEnum> getStatus() const;
-    void setStatus(const std::optional<StatusEnum>& status);
-    [[nodiscard]] Category getCategory() const;
-    void setCategory(const Category& category);
     [[nodiscard]] std::vector<Tag> getTags() const;
     void setTags(const std::vector<Tag>& tags);
+    [[nodiscard]] std::optional<StatusEnum> getStatus() const;
+    void setStatus(const std::optional<StatusEnum>& status);
     // Serialization helpers for std::optional<StatusEnum>
     friend inline void to_json(nlohmann::json& j, const std::optional<StatusEnum>& opt)
     {
@@ -78,15 +78,15 @@ public:
 
     // JSON serialization using NLOHMANN INTRUSIVE macro (must be inside class to access private members)
     NLOHMANN_DEFINE_TYPE_INTRUSIVE(Pet,
-         id, name, photoUrls, status, category, tags)
+         id, category, name, photoUrls, tags, status)
 
 private:
     long id;
+    Category category;
     std::string name;
     std::vector<std::string> photoUrls;
-    std::optional<StatusEnum> status;
-    Category category;
     std::vector<Tag> tags;
+    std::optional<StatusEnum> status;
 };
 
 

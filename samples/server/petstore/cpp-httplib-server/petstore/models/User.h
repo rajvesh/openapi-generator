@@ -7,7 +7,6 @@
 #pragma once
 // System headers
 #include <nlohmann/json.hpp>
-#include <optional>
 #include <cstdint>
 #include <string>
 
@@ -19,17 +18,6 @@ namespace models {
 class User
 {
 public:
-    enum class UserStatusEnum {
-        UNSPECIFIED,
-        _0,
-        _1,
-        _2
-    };
-
-    // Enum conversion functions (definitions in .cpp)
-    static std::string UserStatusEnumToString(UserStatusEnum value);
-    static UserStatusEnum UserStatusEnumFromString(const std::string& str);
-
 
     User();
     virtual ~User() = default;
@@ -49,33 +37,8 @@ public:
     void setPassword(const std::string& password);
     [[nodiscard]] std::string getPhone() const;
     void setPhone(const std::string& phone);
-    [[nodiscard]] std::optional<UserStatusEnum> getUserStatus() const;
-    void setUserStatus(const std::optional<UserStatusEnum>& userStatus);
-    // Serialization helpers for std::optional<UserStatusEnum>
-    friend inline void to_json(nlohmann::json& j, const std::optional<UserStatusEnum>& opt)
-    {
-        if (opt.has_value())
-        {
-            j = UserStatusEnumToString(opt.value());
-        }
-        else
-        {
-            j = nullptr;
-        }
-    }
-
-    friend inline void from_json(const nlohmann::json& j, std::optional<UserStatusEnum>& opt)
-    {
-        if (j.is_null())
-        {
-            opt = std::nullopt;
-        }
-        else
-        {
-            opt = UserStatusEnumFromString(j.get<std::string>());
-        }
-    }
-
+    [[nodiscard]] int getUserStatus() const;
+    void setUserStatus(const int& userStatus);
 
 
     // JSON serialization using NLOHMANN INTRUSIVE macro (must be inside class to access private members)
@@ -90,7 +53,7 @@ private:
     std::string email;
     std::string password;
     std::string phone;
-    std::optional<UserStatusEnum> userStatus;
+    int userStatus;
 };
 
 

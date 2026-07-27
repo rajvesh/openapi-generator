@@ -17,16 +17,18 @@ constexpr int HTTP_RESPONSE_CODE_ERROR_RESPONSE = 400;
 constexpr int HTTP_RESPONSE_CODE_TEST_COOKIE_PARAMETERS200_RESPONSE = 200;
 constexpr int HTTP_RESPONSE_CODE_TEST_HEADER_PARAMETERS200_RESPONSE = 200;
 constexpr int HTTP_RESPONSE_CODE_TEST_HEADER_PARAMETERS401_RESPONSE = 401;
+constexpr int HTTP_RESPONSE_CODE_TEST_MULTIPLE_PATH_PARAMETERS200_RESPONSE = 200;
 constexpr int HTTP_RESPONSE_CODE_TEST_QUERY_PARAMETERS200_RESPONSE = 200;
 constexpr int HTTP_RESPONSE_CODE_INTERNAL_SERVER_ERROR = 500;
 
-namespace api {
+namespace Api {
 
 using namespace models;
 
 bool Parameters::parseParameterscombinedresourceIdPostParams(const httplib::Request& req, Parameters::ParameterscombinedresourceIdPostRequest& params, std::vector<std::string>& paramErrors)
 {
     std::vector<std::string> errors;
+
     if (!req.body.empty())
     {
         try
@@ -47,6 +49,20 @@ bool Parameters::parseParameterscombinedresourceIdPostParams(const httplib::Requ
     {
         params.m_filter = req.get_param_value("filter");
     }
+
+    // Query Parameters - status
+    if (req.has_param("status"))
+    {
+        try
+        {
+            params.m_status = ParameterscombinedresourceIdPostRequest::statusEnumFromString(req.get_param_value("status"));
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid query parameter 'status': " + std::string(e.what()));
+        }
+    }
+
     // Query Parameters - limit
     if (req.has_param("limit"))
     {
@@ -70,6 +86,20 @@ bool Parameters::parseParameterscombinedresourceIdPostParams(const httplib::Requ
     {
         params.m_xCorrelationId = req.get_header_value("X-Correlation-Id");
     }
+
+    // Header Parameters - X-Status
+    if (!req.get_header_value("X-Status").empty())
+    {
+        try
+        {
+            params.m_xStatus = ParameterscombinedresourceIdPostRequest::xStatusEnumFromString(req.get_header_value("X-Status"));
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid header parameter 'X-Status': " + std::string(e.what()));
+        }
+    }
+
     // Header Parameters - X-Client-Version
     if (!req.get_header_value("X-Client-Version").empty())
     {
@@ -98,6 +128,7 @@ bool Parameters::parseParameterscombinedresourceIdPostParams(const httplib::Requ
         }
     }
 
+
     // Cookie Parameters - authToken
     try
     {
@@ -121,6 +152,8 @@ bool Parameters::parseParameterscombinedresourceIdPostParams(const httplib::Requ
     {
         errors.push_back("Invalid cookie parameter 'authToken': " + std::string(e.what()));
     }
+
+
     // Cookie Parameters - userPrefs
     try
     {
@@ -137,11 +170,6 @@ bool Parameters::parseParameterscombinedresourceIdPostParams(const httplib::Requ
                 if (end == std::string::npos) end = cookieHeader.length();
                 cookieValue = cookieHeader.substr(start, end - start);
                 params.m_userPrefs = cookieValue;
-            }
-            else
-            {
-                // Use default value for optional parameter
-                params.m_userPrefs = "";
             }
         }
         else
@@ -190,6 +218,7 @@ bool Parameters::parseParameterscookiesGetParams(const httplib::Request& req, Pa
 {
     std::vector<std::string> errors;
 
+
     // Cookie Parameters - sessionId
     try
     {
@@ -213,6 +242,8 @@ bool Parameters::parseParameterscookiesGetParams(const httplib::Request& req, Pa
     {
         errors.push_back("Invalid cookie parameter 'sessionId': " + std::string(e.what()));
     }
+
+
     // Cookie Parameters - userId
     try
     {
@@ -230,11 +261,6 @@ bool Parameters::parseParameterscookiesGetParams(const httplib::Request& req, Pa
                 cookieValue = cookieHeader.substr(start, end - start);
                 params.m_userId = std::stoi(cookieValue);
             }
-            else
-            {
-                // Use default value for optional parameter
-                params.m_userId = 0;
-            }
         }
         else
         {
@@ -246,6 +272,8 @@ bool Parameters::parseParameterscookiesGetParams(const httplib::Request& req, Pa
     {
         errors.push_back("Invalid cookie parameter 'userId': " + std::string(e.what()));
     }
+
+
     // Cookie Parameters - preferences
     try
     {
@@ -263,11 +291,6 @@ bool Parameters::parseParameterscookiesGetParams(const httplib::Request& req, Pa
                 cookieValue = cookieHeader.substr(start, end - start);
                 params.m_preferences = cookieValue;
             }
-            else
-            {
-                // Use default value for optional parameter
-                params.m_preferences = "";
-            }
         }
         else
         {
@@ -278,6 +301,86 @@ bool Parameters::parseParameterscookiesGetParams(const httplib::Request& req, Pa
     catch (const std::exception& e)
     {
         errors.push_back("Invalid cookie parameter 'preferences': " + std::string(e.what()));
+    }
+
+
+    // Cookie Parameters - authToken
+    try
+    {
+        auto cookieHeader = req.get_header_value("Cookie");
+        if (!cookieHeader.empty())
+        {
+            std::string cookieValue;
+            std::string key = "authToken=";
+            size_t start = cookieHeader.find(key);
+            if (start != std::string::npos)
+            {
+                start += key.length();
+                size_t end = cookieHeader.find(";", start);
+                if (end == std::string::npos) end = cookieHeader.length();
+                cookieValue = cookieHeader.substr(start, end - start);
+                params.m_authToken = cookieValue;
+            }
+        }
+    }
+    catch (const std::exception& e)
+    {
+        errors.push_back("Invalid cookie parameter 'authToken': " + std::string(e.what()));
+    }
+
+
+    // Cookie Parameters - role
+    try
+    {
+        auto cookieHeader = req.get_header_value("Cookie");
+        if (!cookieHeader.empty())
+        {
+            std::string cookieValue;
+            std::string key = "role=";
+            size_t start = cookieHeader.find(key);
+            if (start != std::string::npos)
+            {
+                start += key.length();
+                size_t end = cookieHeader.find(";", start);
+                if (end == std::string::npos) end = cookieHeader.length();
+                cookieValue = cookieHeader.substr(start, end - start);
+                params.m_role = ParameterscookiesGetRequest::roleEnumFromString(cookieValue);
+            }
+        }
+    }
+    catch (const std::exception& e)
+    {
+        errors.push_back("Invalid cookie parameter 'role': " + std::string(e.what()));
+    }
+
+
+    // Cookie Parameters - userPrefs
+    try
+    {
+        auto cookieHeader = req.get_header_value("Cookie");
+        if (!cookieHeader.empty())
+        {
+            std::string cookieValue;
+            std::string key = "userPrefs=";
+            size_t start = cookieHeader.find(key);
+            if (start != std::string::npos)
+            {
+                start += key.length();
+                size_t end = cookieHeader.find(";", start);
+                if (end == std::string::npos) end = cookieHeader.length();
+                cookieValue = cookieHeader.substr(start, end - start);
+                params.m_userPrefs = cookieValue;
+            }
+        }
+        else
+        {
+            // Use default value for optional parameter
+            params.m_userPrefs = "";
+        }
+    }
+    catch (const std::exception& e)
+    {
+        errors.push_back("Invalid cookie parameter 'userPrefs': " + std::string(e.what()));
     }
 
     // Return errors via out-parameter, return false if any errors
@@ -305,6 +408,7 @@ bool Parameters::parseParametersheadersGetParams(const httplib::Request& req, Pa
     {
         params.m_xApiVersion = req.get_header_value("X-Api-Version");
     }
+
     // Header Parameters - X-Request-Id
     if (!req.get_header_value("X-Request-Id").empty())
     {
@@ -315,6 +419,7 @@ bool Parameters::parseParametersheadersGetParams(const httplib::Request& req, Pa
         // Use default value for optional parameter
         params.m_xRequestId = "";
     }
+
     // Header Parameters - X-Rate-Limit
     if (!req.get_header_value("X-Rate-Limit").empty())
     {
@@ -332,6 +437,7 @@ bool Parameters::parseParametersheadersGetParams(const httplib::Request& req, Pa
         // Use default value for optional parameter
         params.m_xRateLimit = 0;
     }
+
     // Header Parameters - X-Tags
     if (!req.get_header_value("X-Tags").empty())
     {
@@ -390,6 +496,77 @@ void Parameters::handleParametersheadersGetResponse(const ParametersheadersGetRe
         }
     }, result);
 }
+bool Parameters::parseParametersresourcesresourceIdusersuserIdcallbackscallbackNameGetParams(const httplib::Request& req, Parameters::ParametersresourcesresourceIdusersuserIdcallbackscallbackNameGetRequest& params, std::vector<std::string>& paramErrors)
+{
+    std::vector<std::string> errors;
+
+    // Path Parameters - resourceId (index: 1)
+    if (req.matches.size() < 1 + 1)
+    {
+        errors.push_back("Missing path parameter 'resourceId'");
+    }
+    else
+    {
+        try
+        {
+            params.m_resourceId = std::stoi(req.matches[1]);
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid path parameter 'resourceId': " + std::string(e.what()));
+        }
+    }
+
+    // Path Parameters - userId (index: 2)
+    if (req.matches.size() < 2 + 1)
+    {
+        errors.push_back("Missing path parameter 'userId'");
+    }
+    else
+    {
+        try
+        {
+            params.m_userId = req.matches[2];
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid path parameter 'userId': " + std::string(e.what()));
+        }
+    }
+
+    // Path Parameters - callbackName (index: 3)
+    if (req.matches.size() < 3 + 1)
+    {
+        errors.push_back("Missing path parameter 'callbackName'");
+    }
+    else
+    {
+        try
+        {
+            params.m_callbackName = req.matches[3];
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid path parameter 'callbackName': " + std::string(e.what()));
+        }
+    }
+
+    // Return errors via out-parameter, return false if any errors
+    if (!errors.empty())
+    {
+        paramErrors = std::move(errors);
+        return false;
+    }
+    return true;
+}
+void Parameters::handleParametersresourcesresourceIdusersuserIdcallbackscallbackNameGetResponse(const ParametersresourcesresourceIdusersuserIdcallbackscallbackNameGetResponse& result, httplib::Response& res)
+{
+    // Single response type
+    res.status = HTTP_RESPONSE_CODE_TEST_MULTIPLE_PATH_PARAMETERS200_RESPONSE;
+    nlohmann::json responseJson;
+    to_json(responseJson, result);
+    res.set_content(responseJson.dump(), "application/json");
+}
 bool Parameters::parseParametersquerypathIdGetParams(const httplib::Request& req, Parameters::ParametersquerypathIdGetRequest& params, std::vector<std::string>& paramErrors)
 {
     std::vector<std::string> errors;
@@ -399,6 +576,7 @@ bool Parameters::parseParametersquerypathIdGetParams(const httplib::Request& req
     {
         params.m_stringParam = req.get_param_value("stringParam");
     }
+
     // Query Parameters - intParam
     if (req.has_param("intParam"))
     {
@@ -416,6 +594,7 @@ bool Parameters::parseParametersquerypathIdGetParams(const httplib::Request& req
         // Use default value for optional parameter
         params.m_intParam = 42;
     }
+
     // Query Parameters - boolParam
     if (req.has_param("boolParam"))
     {
@@ -433,6 +612,7 @@ bool Parameters::parseParametersquerypathIdGetParams(const httplib::Request& req
         // Use default value for optional parameter
         params.m_boolParam = false;
     }
+
     // Query Parameters - arrayParam
     if (req.has_param("arrayParam"))
     {
@@ -475,6 +655,7 @@ bool Parameters::parseParametersquerypathIdGetParams(const httplib::Request& req
             errors.push_back("Invalid query parameter 'arrayParam': " + std::string(e.what()));
         }
     }
+
     // Query Parameters - spaceDelimited
     if (req.has_param("spaceDelimited"))
     {
@@ -517,6 +698,7 @@ bool Parameters::parseParametersquerypathIdGetParams(const httplib::Request& req
             errors.push_back("Invalid query parameter 'spaceDelimited': " + std::string(e.what()));
         }
     }
+
     // Query Parameters - pipeDelimited
     if (req.has_param("pipeDelimited"))
     {
@@ -557,6 +739,7 @@ bool Parameters::parseParametersquerypathIdGetParams(const httplib::Request& req
             errors.push_back("Invalid query parameter 'pipeDelimited': " + std::string(e.what()));
         }
     }
+
     // Query Parameters - deepObject
     if (req.has_param("deepObject"))
     {
@@ -722,6 +905,35 @@ void Parameters::handleParametersheadersGetRequest([[maybe_unused]] const httpli
     }
 }
 
+void Parameters::handleParametersresourcesresourceIdusersuserIdcallbackscallbackNameGetRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+{
+    try
+    {
+
+        ParametersresourcesresourceIdusersuserIdcallbackscallbackNameGetRequest params;
+        std::vector<std::string> paramErrors;
+        if (!parseParametersresourcesresourceIdusersuserIdcallbackscallbackNameGetParams(req, params, paramErrors))
+        {
+            nlohmann::json errorJson = nlohmann::json::object();
+            errorJson["message"] = "Invalid parameters";
+            errorJson["errors"] = paramErrors;
+            res.status = HTTP_RESPONSE_CODE_ERROR_RESPONSE;
+            res.set_content(errorJson.dump(), "application/json");
+            return;
+        }
+        auto result = handleGetForParametersresourcesresourceIdusersuserIdcallbackscallbackName(params);
+        handleParametersresourcesresourceIdusersuserIdcallbackscallbackNameGetResponse(result, res);
+
+    }
+    catch (const std::exception& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Internal error: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_INTERNAL_SERVER_ERROR;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+}
+
 void Parameters::handleParametersquerypathIdGetRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
 {
     try
@@ -754,7 +966,7 @@ void Parameters::handleParametersquerypathIdGetRequest([[maybe_unused]] const ht
 
 void Parameters::registerRoutes(httplib::Server& svr)
 {
-    svr.Post("/parameters/combined/{resourceId}", [this]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    svr.Post("/parameters/combined/([^/]+)", [this]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
     {
         handleParameterscombinedresourceIdPostRequest(req, res);
     });
@@ -766,10 +978,14 @@ void Parameters::registerRoutes(httplib::Server& svr)
     {
         handleParametersheadersGetRequest(req, res);
     });
-    svr.Get("/parameters/query/{pathId}", [this]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    svr.Get("/parameters/resources/([^/]+)/users/([^/]+)/callbacks/([^/]+)", [this]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    {
+        handleParametersresourcesresourceIdusersuserIdcallbackscallbackNameGetRequest(req, res);
+    });
+    svr.Get("/parameters/query/([^/]+)", [this]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
     {
         handleParametersquerypathIdGetRequest(req, res);
     });
 }
 
-} // namespace api
+} // namespace Api

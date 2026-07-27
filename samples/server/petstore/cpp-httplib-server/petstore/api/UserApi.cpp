@@ -11,19 +11,23 @@
 
 // Project headers
 #include "UserApi.h"
+#include "AuthenticationManager.h"
 
 constexpr int HTTP_RESPONSE_CODE_USER = 200;
+constexpr int HTTP_RESPONSE_CODE_PRIMITIVE_STRING = 200;
 constexpr int HTTP_RESPONSE_CODE_NO_CONTENT = 204;
 constexpr int HTTP_RESPONSE_CODE_BAD_REQUEST = 400;
+constexpr int HTTP_RESPONSE_CODE_UNAUTHORIZED = 401;
 constexpr int HTTP_RESPONSE_CODE_INTERNAL_SERVER_ERROR = 500;
 
-namespace api {
+namespace Api {
 
 using namespace models;
 
 bool User::parseUserPostParams(const httplib::Request& req, User::UserPostRequest& params, std::vector<std::string>& paramErrors)
 {
     std::vector<std::string> errors;
+
     if (!req.body.empty())
     {
         try
@@ -49,13 +53,63 @@ bool User::parseUserPostParams(const httplib::Request& req, User::UserPostReques
     }
     return true;
 }
-void User::handleUserPostResponse(const UserPostResponse& result, httplib::Response& res)
+bool User::parseUsercreateWithArrayPostParams(const httplib::Request& req, User::UsercreateWithArrayPostRequest& params, std::vector<std::string>& paramErrors)
 {
-    // Single response type
-    res.status = HTTP_RESPONSE_CODE_USER;
-    nlohmann::json responseJson;
-    to_json(responseJson, result);
-    res.set_content(responseJson.dump(), "application/json");
+    std::vector<std::string> errors;
+
+    if (!req.body.empty())
+    {
+        try
+        {
+            nlohmann::json json = nlohmann::json::parse(req.body);
+            from_json(json, params.m_request);
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid request body: " + std::string(e.what()));
+        }
+    }
+    else
+    {
+        errors.push_back("Missing required request body");
+    }
+
+    // Return errors via out-parameter, return false if any errors
+    if (!errors.empty())
+    {
+        paramErrors = std::move(errors);
+        return false;
+    }
+    return true;
+}
+bool User::parseUsercreateWithListPostParams(const httplib::Request& req, User::UsercreateWithListPostRequest& params, std::vector<std::string>& paramErrors)
+{
+    std::vector<std::string> errors;
+
+    if (!req.body.empty())
+    {
+        try
+        {
+            nlohmann::json json = nlohmann::json::parse(req.body);
+            from_json(json, params.m_request);
+        }
+        catch (const std::exception& e)
+        {
+            errors.push_back("Invalid request body: " + std::string(e.what()));
+        }
+    }
+    else
+    {
+        errors.push_back("Missing required request body");
+    }
+
+    // Return errors via out-parameter, return false if any errors
+    if (!errors.empty())
+    {
+        paramErrors = std::move(errors);
+        return false;
+    }
+    return true;
 }
 bool User::parseUserusernameDeleteParams(const httplib::Request& req, User::UserusernameDeleteRequest& params, std::vector<std::string>& paramErrors)
 {
@@ -123,9 +177,42 @@ void User::handleUserusernameGetResponse(const UserusernameGetResponse& result, 
     to_json(responseJson, result);
     res.set_content(responseJson.dump(), "application/json");
 }
+bool User::parseUserloginGetParams(const httplib::Request& req, User::UserloginGetRequest& params, std::vector<std::string>& paramErrors)
+{
+    std::vector<std::string> errors;
+
+    // Query Parameters - username
+    if (req.has_param("username"))
+    {
+        params.m_username = req.get_param_value("username");
+    }
+
+    // Query Parameters - password
+    if (req.has_param("password"))
+    {
+        params.m_password = req.get_param_value("password");
+    }
+
+    // Return errors via out-parameter, return false if any errors
+    if (!errors.empty())
+    {
+        paramErrors = std::move(errors);
+        return false;
+    }
+    return true;
+}
+void User::handleUserloginGetResponse(const UserloginGetResponse& result, httplib::Response& res)
+{
+    // Single response type
+    res.status = HTTP_RESPONSE_CODE_PRIMITIVE_STRING;
+    nlohmann::json responseJson;
+    to_json(responseJson, result);
+    res.set_content(responseJson.dump(), "application/json");
+}
 bool User::parseUserusernamePutParams(const httplib::Request& req, User::UserusernamePutRequest& params, std::vector<std::string>& paramErrors)
 {
     std::vector<std::string> errors;
+
     if (!req.body.empty())
     {
         try
@@ -169,11 +256,43 @@ bool User::parseUserusernamePutParams(const httplib::Request& req, User::Useruse
     return true;
 }
 
+bool User::performAuthentication(
+    const httplib::Request& req,
+    std::shared_ptr<AuthenticationManager> auth,
+    httplib::Response& res)
+{
+    if (!auth)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "AuthenticationManager not configured";
+        res.status = HTTP_RESPONSE_CODE_INTERNAL_SERVER_ERROR;
+        res.set_content(errorJson.dump(), "application/json");
+        return false;
+    }
 
-void User::handleUserPostRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    if (req.has_header("api_key"))
+    {
+        if (auth->validateApiKey(req.get_header_value("api_key"))) return true;
+    }
+
+
+
+
+    return false;
+}
+
+void User::handleUserPostRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res, std::shared_ptr<AuthenticationManager> auth)
 {
     try
     {
+        if (!performAuthentication(req, auth, res))
+        {
+            nlohmann::json errorJson = nlohmann::json::object();
+            errorJson["message"] = "Authentication required";
+            res.status = HTTP_RESPONSE_CODE_UNAUTHORIZED;
+            res.set_content(errorJson.dump(), "application/json");
+            return;
+        }
 
         UserPostRequest params;
         std::vector<std::string> paramErrors;
@@ -186,8 +305,9 @@ void User::handleUserPostRequest([[maybe_unused]] const httplib::Request& req, h
             res.set_content(errorJson.dump(), "application/json");
             return;
         }
-        auto result = handlePostForUser(params);
-        handleUserPostResponse(result, res);
+
+        handlePostForUser(params);
+        res.status = HTTP_RESPONSE_CODE_NO_CONTENT;
 
     }
     catch (const nlohmann::json::parse_error& e)
@@ -227,10 +347,150 @@ void User::handleUserPostRequest([[maybe_unused]] const httplib::Request& req, h
     }
 }
 
-void User::handleUserusernameDeleteRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+void User::handleUsercreateWithArrayPostRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res, std::shared_ptr<AuthenticationManager> auth)
 {
     try
     {
+        if (!performAuthentication(req, auth, res))
+        {
+            nlohmann::json errorJson = nlohmann::json::object();
+            errorJson["message"] = "Authentication required";
+            res.status = HTTP_RESPONSE_CODE_UNAUTHORIZED;
+            res.set_content(errorJson.dump(), "application/json");
+            return;
+        }
+
+        UsercreateWithArrayPostRequest params;
+        std::vector<std::string> paramErrors;
+        if (!parseUsercreateWithArrayPostParams(req, params, paramErrors))
+        {
+            nlohmann::json errorJson = nlohmann::json::object();
+            errorJson["message"] = "Invalid parameters";
+            errorJson["errors"] = paramErrors;
+            res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
+            res.set_content(errorJson.dump(), "application/json");
+            return;
+        }
+
+        handlePostForUsercreateWithArray(params);
+        res.status = HTTP_RESPONSE_CODE_NO_CONTENT;
+
+    }
+    catch (const nlohmann::json::parse_error& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Invalid JSON: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+    catch (const nlohmann::json::invalid_iterator& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Invalid JSON: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+    catch (const nlohmann::json::type_error& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Invalid JSON: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+    catch (const nlohmann::json::out_of_range& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Invalid JSON: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+    catch (const nlohmann::json::other_error& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Invalid JSON: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+}
+
+void User::handleUsercreateWithListPostRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res, std::shared_ptr<AuthenticationManager> auth)
+{
+    try
+    {
+        if (!performAuthentication(req, auth, res))
+        {
+            nlohmann::json errorJson = nlohmann::json::object();
+            errorJson["message"] = "Authentication required";
+            res.status = HTTP_RESPONSE_CODE_UNAUTHORIZED;
+            res.set_content(errorJson.dump(), "application/json");
+            return;
+        }
+
+        UsercreateWithListPostRequest params;
+        std::vector<std::string> paramErrors;
+        if (!parseUsercreateWithListPostParams(req, params, paramErrors))
+        {
+            nlohmann::json errorJson = nlohmann::json::object();
+            errorJson["message"] = "Invalid parameters";
+            errorJson["errors"] = paramErrors;
+            res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
+            res.set_content(errorJson.dump(), "application/json");
+            return;
+        }
+
+        handlePostForUsercreateWithList(params);
+        res.status = HTTP_RESPONSE_CODE_NO_CONTENT;
+
+    }
+    catch (const nlohmann::json::parse_error& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Invalid JSON: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+    catch (const nlohmann::json::invalid_iterator& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Invalid JSON: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+    catch (const nlohmann::json::type_error& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Invalid JSON: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+    catch (const nlohmann::json::out_of_range& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Invalid JSON: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+    catch (const nlohmann::json::other_error& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Invalid JSON: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+}
+
+void User::handleUserusernameDeleteRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res, std::shared_ptr<AuthenticationManager> auth)
+{
+    try
+    {
+        if (!performAuthentication(req, auth, res))
+        {
+            nlohmann::json errorJson = nlohmann::json::object();
+            errorJson["message"] = "Authentication required";
+            res.status = HTTP_RESPONSE_CODE_UNAUTHORIZED;
+            res.set_content(errorJson.dump(), "application/json");
+            return;
+        }
 
         UserusernameDeleteRequest params;
         std::vector<std::string> paramErrors;
@@ -286,10 +546,73 @@ void User::handleUserusernameGetRequest([[maybe_unused]] const httplib::Request&
     }
 }
 
-void User::handleUserusernamePutRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+void User::handleUserloginGetRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
 {
     try
     {
+
+        UserloginGetRequest params;
+        std::vector<std::string> paramErrors;
+        if (!parseUserloginGetParams(req, params, paramErrors))
+        {
+            nlohmann::json errorJson = nlohmann::json::object();
+            errorJson["message"] = "Invalid parameters";
+            errorJson["errors"] = paramErrors;
+            res.status = HTTP_RESPONSE_CODE_BAD_REQUEST;
+            res.set_content(errorJson.dump(), "application/json");
+            return;
+        }
+        auto result = handleGetForUserlogin(params);
+        handleUserloginGetResponse(result, res);
+
+    }
+    catch (const std::exception& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Internal error: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_INTERNAL_SERVER_ERROR;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+}
+
+void User::handleUserlogoutGetRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res, std::shared_ptr<AuthenticationManager> auth)
+{
+    try
+    {
+        if (!performAuthentication(req, auth, res))
+        {
+            nlohmann::json errorJson = nlohmann::json::object();
+            errorJson["message"] = "Authentication required";
+            res.status = HTTP_RESPONSE_CODE_UNAUTHORIZED;
+            res.set_content(errorJson.dump(), "application/json");
+            return;
+        }
+
+        handleGetForUserlogout();
+        res.status = HTTP_RESPONSE_CODE_NO_CONTENT;
+
+    }
+    catch (const std::exception& e)
+    {
+        nlohmann::json errorJson = nlohmann::json::object();
+        errorJson["message"] = "Internal error: " + std::string(e.what());
+        res.status = HTTP_RESPONSE_CODE_INTERNAL_SERVER_ERROR;
+        res.set_content(errorJson.dump(), "application/json");
+    }
+}
+
+void User::handleUserusernamePutRequest([[maybe_unused]] const httplib::Request& req, httplib::Response& res, std::shared_ptr<AuthenticationManager> auth)
+{
+    try
+    {
+        if (!performAuthentication(req, auth, res))
+        {
+            nlohmann::json errorJson = nlohmann::json::object();
+            errorJson["message"] = "Authentication required";
+            res.status = HTTP_RESPONSE_CODE_UNAUTHORIZED;
+            res.set_content(errorJson.dump(), "application/json");
+            return;
+        }
 
         UserusernamePutRequest params;
         std::vector<std::string> paramErrors;
@@ -345,24 +668,40 @@ void User::handleUserusernamePutRequest([[maybe_unused]] const httplib::Request&
 }
 
 
-void User::registerRoutes(httplib::Server& svr)
+void User::registerRoutes(httplib::Server& svr, std::shared_ptr<AuthenticationManager> auth)
 {
-    svr.Post("/user", [this]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    svr.Post("/user", [this, auth]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
     {
-        handleUserPostRequest(req, res);
+        handleUserPostRequest(req, res, auth);
     });
-    svr.Delete("/user/{username}", [this]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    svr.Post("/user/createWithArray", [this, auth]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
     {
-        handleUserusernameDeleteRequest(req, res);
+        handleUsercreateWithArrayPostRequest(req, res, auth);
     });
-    svr.Get("/user/{username}", [this]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    svr.Post("/user/createWithList", [this, auth]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    {
+        handleUsercreateWithListPostRequest(req, res, auth);
+    });
+    svr.Delete("/user/([^/]+)", [this, auth]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    {
+        handleUserusernameDeleteRequest(req, res, auth);
+    });
+    svr.Get("/user/([^/]+)", [this]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
     {
         handleUserusernameGetRequest(req, res);
     });
-    svr.Put("/user/{username}", [this]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    svr.Get("/user/login", [this]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
     {
-        handleUserusernamePutRequest(req, res);
+        handleUserloginGetRequest(req, res);
+    });
+    svr.Get("/user/logout", [this, auth]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    {
+        handleUserlogoutGetRequest(req, res, auth);
+    });
+    svr.Put("/user/([^/]+)", [this, auth]([[maybe_unused]] const httplib::Request& req, httplib::Response& res)
+    {
+        handleUserusernamePutRequest(req, res, auth);
     });
 }
 
-} // namespace api
+} // namespace Api

@@ -44,12 +44,69 @@ public:
     */
     struct {{requestType}}
     {
-        {{#requestModel}}
-        {{{bodyParam.dataType}}} m_request; //Request Body{{#bodyParam.vendorExtensions.isRequired}} (required){{/bodyParam.vendorExtensions.isRequired}}{{^bodyParam.vendorExtensions.isRequired}} (optional){{/bodyParam.vendorExtensions.isRequired}}{{/requestModel}}{{#queryParams}}
-        {{{dataType}}} m_{{paramName}}; //Query Params{{#vendorExtensions.isRequired}} (required){{/vendorExtensions.isRequired}}{{^vendorExtensions.isRequired}} (optional){{/vendorExtensions.isRequired}}{{/queryParams}}{{#headerParams}}
-        {{{dataType}}} m_{{paramName}}; //HeaderParams{{#vendorExtensions.isRequired}} (required){{/vendorExtensions.isRequired}}{{^vendorExtensions.isRequired}} (optional){{/vendorExtensions.isRequired}}{{/headerParams}}{{#pathParams}}
-        {{{dataType}}} m_{{paramName}}; //PathParams (always required){{/pathParams}}{{#cookieParams}}
-        {{{dataType}}} m_{{paramName}}; //Cookies{{#vendorExtensions.isRequired}} (required){{/vendorExtensions.isRequired}}{{^vendorExtensions.isRequired}} (optional){{/vendorExtensions.isRequired}}{{/cookieParams}}
+{{#queryParams}}
+{{#vendorExtensions.isEnum}}
+{{^vendorExtensions.isArray}}
+        enum class {{vendorExtensions.shortEnumName}} {
+            {{#vendorExtensions.values}}{{.}}{{^-last}},
+            {{/-last}}{{/vendorExtensions.values}}
+        };
+        static std::string {{vendorExtensions.enumToStringHelper}}({{vendorExtensions.shortEnumName}} value);
+        static {{vendorExtensions.shortEnumName}} {{vendorExtensions.enumFromStringHelper}}(const std::string& str);
+{{/vendorExtensions.isArray}}
+{{/vendorExtensions.isEnum}}
+{{/queryParams}}
+{{#headerParams}}
+{{#vendorExtensions.isEnum}}
+{{^vendorExtensions.isArray}}
+        enum class {{vendorExtensions.shortEnumName}} {
+            {{#vendorExtensions.values}}{{.}}{{^-last}},
+            {{/-last}}{{/vendorExtensions.values}}
+        };
+        static std::string {{vendorExtensions.enumToStringHelper}}({{vendorExtensions.shortEnumName}} value);
+        static {{vendorExtensions.shortEnumName}} {{vendorExtensions.enumFromStringHelper}}(const std::string& str);
+{{/vendorExtensions.isArray}}
+{{/vendorExtensions.isEnum}}
+{{/headerParams}}
+{{#pathParams}}
+{{#vendorExtensions.isEnum}}
+{{^vendorExtensions.isArray}}
+        enum class {{vendorExtensions.shortEnumName}} {
+            {{#vendorExtensions.values}}{{.}}{{^-last}},
+            {{/-last}}{{/vendorExtensions.values}}
+        };
+        static std::string {{vendorExtensions.enumToStringHelper}}({{vendorExtensions.shortEnumName}} value);
+        static {{vendorExtensions.shortEnumName}} {{vendorExtensions.enumFromStringHelper}}(const std::string& str);
+{{/vendorExtensions.isArray}}
+{{/vendorExtensions.isEnum}}
+{{/pathParams}}
+{{#cookieParams}}
+{{#vendorExtensions.isEnum}}
+{{^vendorExtensions.isArray}}
+        enum class {{vendorExtensions.shortEnumName}} {
+            {{#vendorExtensions.values}}{{.}}{{^-last}},
+            {{/-last}}{{/vendorExtensions.values}}
+        };
+        static std::string {{vendorExtensions.enumToStringHelper}}({{vendorExtensions.shortEnumName}} value);
+        static {{vendorExtensions.shortEnumName}} {{vendorExtensions.enumFromStringHelper}}(const std::string& str);
+{{/vendorExtensions.isArray}}
+{{/vendorExtensions.isEnum}}
+{{/cookieParams}}
+{{#requestModel}}
+        {{{bodyParam.dataType}}} m_request; //Request Body{{#bodyParam.vendorExtensions.isRequired}} (required){{/bodyParam.vendorExtensions.isRequired}}{{^bodyParam.vendorExtensions.isRequired}} (optional){{/bodyParam.vendorExtensions.isRequired}}
+{{/requestModel}}
+{{#queryParams}}
+        {{{dataType}}} m_{{paramName}}; //Query Params{{#vendorExtensions.isRequired}} (required){{/vendorExtensions.isRequired}}{{^vendorExtensions.isRequired}} (optional){{/vendorExtensions.isRequired}}
+{{/queryParams}}
+{{#headerParams}}
+        {{{dataType}}} m_{{paramName}}; //HeaderParams{{#vendorExtensions.isRequired}} (required){{/vendorExtensions.isRequired}}{{^vendorExtensions.isRequired}} (optional){{/vendorExtensions.isRequired}}
+{{/headerParams}}
+{{#pathParams}}
+        {{{dataType}}} m_{{paramName}}; //PathParams (always required)
+{{/pathParams}}
+{{#cookieParams}}
+        {{{dataType}}} m_{{paramName}}; //Cookies{{#vendorExtensions.isRequired}} (required){{/vendorExtensions.isRequired}}{{^vendorExtensions.isRequired}} (optional){{/vendorExtensions.isRequired}}
+{{/cookieParams}}
     };
 {{/hasAnyRequestSchema}}
 {{/vendorExtensions}}

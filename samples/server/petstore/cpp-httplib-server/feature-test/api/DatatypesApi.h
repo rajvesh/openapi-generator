@@ -23,7 +23,7 @@
 #include "models/PrimitiveTypes.h"
 #include "models/SuccessResponse.h"
 
-namespace api {
+namespace Api {
     class AuthenticationManager;
 class Datatypes {
 public:
@@ -59,8 +59,16 @@ public:
     */
     struct ResponsesmultipleGetRequest
     {
-
-        std::string m_scenario; //Query Params (required)
+        enum class ScenarioEnum {
+            UNSPECIFIED,
+            SUCCESS,
+            CREATED,
+            NOTFOUND,
+            ERROR
+        };
+        static std::string scenarioEnumToString(ScenarioEnum value);
+        static ScenarioEnum scenarioEnumFromString(const std::string& str);
+        ScenarioEnum m_scenario; //Query Params (required)
     };
 
     /**
@@ -76,7 +84,6 @@ public:
     */
     struct ResponsesnocontentDeleteRequest
     {
-
         int m_id; //Query Params (required)
     };
 
@@ -205,4 +212,4 @@ private:
     static void handleDatatypesprimitivesPostResponse(const DatatypesprimitivesPostResponse& result, httplib::Response& res);
 };
 
-} // namespace api
+} // namespace Api

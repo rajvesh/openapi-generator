@@ -20,7 +20,7 @@ constexpr int HTTP_RESPONSE_CODE_TEST_BEARER_SECURITY200_RESPONSE = 200;
 constexpr int HTTP_RESPONSE_CODE_TEST_O_AUTH2_SECURITY200_RESPONSE = 200;
 constexpr int HTTP_RESPONSE_CODE_INTERNAL_SERVER_ERROR = 500;
 
-namespace api {
+namespace Api {
 
 using namespace models;
 
@@ -295,4 +295,4 @@ void Security::registerRoutes(httplib::Server& svr, std::shared_ptr<Authenticati
     });
 }
 
-} // namespace api
+} // namespace Api
